@@ -1,5 +1,9 @@
 # Battery and Power Electronics Reference Models
 
+[![Last commit](https://img.shields.io/github/last-commit/mohammadrezwankhan/battery-power-models?style=flat-square)](https://github.com/mohammadrezwankhan/battery-power-models/commits/main)
+[![Open issues](https://img.shields.io/github/issues/mohammadrezwankhan/battery-power-models?style=flat-square)](https://github.com/mohammadrezwankhan/battery-power-models/issues)
+[![License](https://img.shields.io/github/license/mohammadrezwankhan/battery-power-models?style=flat-square)](https://github.com/mohammadrezwankhan/battery-power-models/blob/main/LICENSE)
+
 Small, inspectable reference models for early battery-thermal and DC-link design checks. The repository favors explicit equations, stated assumptions, and tests over opaque tooling.
 
 ## Models
