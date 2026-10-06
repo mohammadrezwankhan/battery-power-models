@@ -71,7 +71,7 @@ assumptions used in the result.
 
 ## Author
 
-[Mohammad Rezwan Khan](https://rezwankhan.tech/) - Electrical R&D Engineer and PhD in Energy Technology.
+[Mohammad Rezwan Khan](https://mrkhan.co.technology/) - Electrical R&D Engineer and PhD in Energy Technology.
 
 ## License
 
