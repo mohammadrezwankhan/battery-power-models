@@ -45,6 +45,17 @@ python src/dc_link.py
 python -m unittest discover -s tests -v
 ```
 
+In MATLAB, the thermal function accepts an optional parameter struct and an
+optional initial temperature. Missing parameter fields use the reference
+defaults; the initial temperature defaults to the configured ambient value.
+
+```matlab
+addpath('matlab');
+temperature_c = battery_thermal_lumped([80 80], 1, struct('ambient_c', 30));
+results = runtests('matlab/tests');
+assertSuccess(results);
+```
+
 ## Repository Layout
 
 ```text
