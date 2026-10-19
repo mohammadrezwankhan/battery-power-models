@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "repository": "mohammadrezwankhan/battery-power-models",
+  "display_name": "Battery & Power Reference Models",
+  "description": "Tested Python and MATLAB reference models for lumped battery thermal response and DC-link sizing.",
+  "domain": "DOMAIN_D",
+  "theme": {
+    "accent": "#FF6D00",
+    "secondary": "#00B0FF",
+    "surface": "#1A1412",
+    "glow": "rgba(255, 109, 0, 0.35)",
+    "label": "Simulation & digital twins",
+    "short": "Simulation"
+  },
+  "repo_type": "reference-models",
+  "source_revision": "42bd78c6429865fa35376f98b6b58de0151c58fb",
+  "source_snapshot_date": "2026-10-19",
+  "repo_url": "https://github.com/mohammadrezwankhan/battery-power-models",
+  "homepage": "https://mrkhan.co.technology/models/battery-power-models/",
+  "upstream": null,
+  "lessons": [
+    {
+      "id": "path-01",
+      "title": "Read equations and assumptions",
+      "summary": "Inspect the thermal balance and two DC-link relationships before selecting inputs.",
+      "objective": "Separate early reference calculations from qualified design decisions.",
+      "checkpoint": "Locate the I-squared-R source term, cooling conductance and the explicit model boundary.",
+      "level": "Foundation",
+      "tags": [
+        "foundations",
+        "engineering",
+        "thermal",
+        "power-conversion"
+      ],
+      "source_paths": [
+        "README.md",
+        "src/battery_thermal.py",
+        "src/dc_link.py"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/README.md",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/src/battery_thermal.py",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/src/dc_link.py"
+      ],
+      "parameters": [
+        {
+          "name": "resistance_ohm",
+          "description": "Constant electrical resistance used for Joule heating",
+          "default": 0.003,
+          "unit": "ohm",
+          "source_path": "src/battery_thermal.py",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "thermal_capacitance_j_per_k",
+          "description": "Lumped thermal capacitance",
+          "default": 5000.0,
+          "unit": "J/K",
+          "source_path": "src/battery_thermal.py",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "cooling_conductance_w_per_k",
+          "description": "Effective cooling conductance",
+          "default": 4.0,
+          "unit": "W/K",
+          "source_path": "src/battery_thermal.py",
+          "definition_basis": "documented_or_source_default"
+        }
+      ],
+      "command": null,
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    },
+    {
+      "id": "path-02",
+      "title": "Follow the thermal time update",
+      "summary": "Read the exact first-order update and the constant-current CSV example.",
+      "objective": "Relate the initial temperature, steady temperature and time constant to the trace.",
+      "checkpoint": "The documented command writes time_s, current_a and temperature_c; choose a duration divisible by dt if the endpoint must equal the requested duration.",
+      "level": "Foundation",
+      "tags": [
+        "foundations",
+        "engineering",
+        "thermal",
+        "evidence"
+      ],
+      "source_paths": [
+        "src/battery_thermal.py",
+        "README.md",
+        "tests/test_models.py"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/src/battery_thermal.py",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/README.md",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/tests/test_models.py"
+      ],
+      "parameters": [
+        {
+          "name": "--current",
+          "description": "Constant input current",
+          "default": 80.0,
+          "unit": "A",
+          "source_path": "src/battery_thermal.py",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--duration",
+          "description": "Requested profile duration before whole-step rounding",
+          "default": 900.0,
+          "unit": "s",
+          "source_path": "src/battery_thermal.py",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "--dt",
+          "description": "Constant profile time step",
+          "default": 1.0,
+          "unit": "s",
+          "source_path": "src/battery_thermal.py",
+          "definition_basis": "documented_or_source_default"
+        }
+      ],
+      "command": "python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv",
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    },
+    {
+      "id": "path-03",
+      "title": "Inspect ripple and pulse-energy sizing",
+      "summary": "Compare zero-mean triangular-current ripple with capacitance from an exact capacitor-energy difference.",
+      "objective": "Select the relationship that matches the assumed waveform or energy pulse.",
+      "checkpoint": "Check finite inputs, positive capacitance/frequency, and allowed voltage drop below bus voltage; the demo outputs are not hardware validation.",
+      "level": "Applied",
+      "tags": [
+        "application",
+        "engineering",
+        "power-conversion"
+      ],
+      "source_paths": [
+        "src/dc_link.py",
+        "matlab/dc_link_ripple.m",
+        "README.md"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/src/dc_link.py",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/matlab/dc_link_ripple.m",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/README.md"
+      ],
+      "parameters": [
+        {
+          "name": "current_pp_a",
+          "description": "Peak-to-peak triangular capacitor current; function input",
+          "default": null,
+          "unit": "A",
+          "source_path": "src/dc_link.py",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "switching_hz",
+          "description": "Switching frequency; function input",
+          "default": null,
+          "unit": "Hz",
+          "source_path": "src/dc_link.py",
+          "definition_basis": "documented_or_source_default"
+        },
+        {
+          "name": "allowed_drop_v",
+          "description": "Allowed drop during the energy pulse, smaller than bus_v",
+          "default": null,
+          "unit": "V",
+          "source_path": "src/dc_link.py",
+          "definition_basis": "documented_or_source_default"
+        }
+      ],
+      "command": "python src/dc_link.py",
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    },
+    {
+      "id": "path-04",
+      "title": "Review cross-language regression coverage",
+      "summary": "Use the contribution checklist to compare implementations and existing tests.",
+      "objective": "Keep equivalent Python and MATLAB behavior and units aligned.",
+      "checkpoint": "Inspect the Python unittest suite and MATLAB test class; MATLAB results remain unverified in this audit.",
+      "level": "Applied",
+      "tags": [
+        "application",
+        "engineering",
+        "validation",
+        "contribution",
+        "evidence"
+      ],
+      "source_paths": [
+        "CONTRIBUTING.md",
+        "tests/test_models.py",
+        "tests/test_input_validation.py",
+        "matlab/tests/TestReferenceModels.m"
+      ],
+      "source_urls": [
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/CONTRIBUTING.md",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/tests/test_models.py",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/tests/test_input_validation.py",
+        "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/matlab/tests/TestReferenceModels.m"
+      ],
+      "parameters": [],
+      "command": "python -m unittest discover -s tests -v",
+      "native_id": null,
+      "native_route": null,
+      "execution_status": "source-linked guide; no execution by this dashboard"
+    }
+  ]
+}

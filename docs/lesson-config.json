@@ -1,93 +1,311 @@
 {
-  "repository": "battery-power-models",
-  "domain": "DOMAIN_A",
-  "title": "Battery Power & DC-Link Models",
-  "version": "2.0.0",
-  "author": "Mohammad Rezwan Khan",
-  "lessons": [
+  "$schema": "./lesson-config.schema.json",
+  "schema_version": "1.0",
+  "repository": {
+    "owner": "mohammadrezwankhan",
+    "slug": "battery-power-models",
+    "name": "battery-power-models",
+    "title": "Battery and Power Reference Lab",
+    "url": "https://github.com/mohammadrezwankhan/battery-power-models",
+    "default_branch": "main",
+    "description": "Explore battery thermal balances & DC-link sizing through inspectable Python and MATLAB models with reproducible checks.",
+    "summary": "Dependency-free Python references and MATLAB equivalents cover lumped battery heating and DC-link sizing. The browser lab follows the thermal balance and directs electrical sizing questions to the native functions.",
+    "audience": "Engineers and students making early thermal and power-electronics sensitivity checks.",
+    "topics": [
+      "battery",
+      "battery-modeling",
+      "thermal-modeling",
+      "dc-link",
+      "capacitor-sizing",
+      "power-electronics",
+      "energy-storage",
+      "electrical-engineering",
+      "python",
+      "matlab",
+      "reference-models",
+      "simulation",
+      "numerical-methods",
+      "model-validation",
+      "engineering-education"
+    ],
+    "source_paths": [
+      "README.md",
+      "src/battery_thermal.py",
+      "src/dc_link.py",
+      "matlab/battery_thermal_lumped.m",
+      "matlab/dc_link_ripple.m",
+      "tests/test_models.py",
+      "tests/test_input_validation.py"
+    ],
+    "is_fork": false,
+    "upstream": null
+  },
+  "domain": {
+    "id": "A",
+    "name": "Energy systems",
+    "primary": "#00E5FF",
+    "secondary": "#00E676",
+    "surface": "#0A192F",
+    "glow": "rgba(0,229,255,0.35)"
+  },
+  "model": {
+    "title": "Reference thermal balance · heat and cooling",
+    "timeUnit": "min",
+    "horizon": 60,
+    "parameters": [
+      {
+        "key": "heatW",
+        "label": "Heat input",
+        "unit": "W",
+        "min": 100,
+        "max": 3000,
+        "step": 100,
+        "default": 300,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      },
+      {
+        "key": "coolingWK",
+        "label": "Heat transfer",
+        "unit": "W/K",
+        "min": 10,
+        "max": 120,
+        "step": 5,
+        "default": 20,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      },
+      {
+        "key": "capacityJPerK",
+        "label": "Thermal capacity",
+        "unit": "J/K",
+        "min": 3000,
+        "max": 60000,
+        "step": 1000,
+        "default": 6000,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      },
+      {
+        "key": "ambientC",
+        "label": "Ambient temperature",
+        "unit": "°C",
+        "min": 0,
+        "max": 45,
+        "step": 1,
+        "default": 25,
+        "calibration": "Illustrative input; verified against the declared analytical model, not field measurements."
+      }
+    ],
+    "metrics": [
+      {
+        "key": "temperatureC",
+        "label": "Body temperature",
+        "unit": "°C",
+        "decimals": 1
+      },
+      {
+        "key": "heatRemovedW",
+        "label": "Heat removed",
+        "unit": "W",
+        "decimals": 0
+      },
+      {
+        "key": "storedEnergyKJ",
+        "label": "Stored heat",
+        "unit": "kJ",
+        "decimals": 1
+      },
+      {
+        "key": "residualW",
+        "label": "Net heating",
+        "unit": "W",
+        "decimals": 0
+      }
+    ],
+    "equation": "ΔT = (Q/h) · (1 − exp(−h · 60t/C)); T = Tₐ + ΔT; heat removed = hΔT; stored heat = CΔT/1000.",
+    "assumptions": [
+      "One uniform thermal mass starts at ambient temperature.",
+      "Constant heat input and linear heat transfer; no phase change or spatial gradients.",
+      "Elapsed time is shown in minutes; the energy-balance calculation uses seconds.",
+      "Browser heat, conductance, and thermal capacity are illustrative teaching inputs, not the native default cell parameters.",
+      "One thermal mass cannot predict internal gradients or qualify a battery cooling design.",
+      "DC-link ripple and energy-pulse capacitance are separate native calculations and are not derived from this temperature graph."
+    ],
+    "kind": "thermal",
+    "introduction": "The browser uses the same first-order energy-balance form with a different, explicitly illustrative scale. It takes heat directly in watts; the native thermal model derives heat from current squared times resistance.",
+    "calibration_status": "Uncalibrated synthetic teaching proxy"
+  },
+  "modules": [
     {
-      "id": "L01",
-      "title": "High-Rate Pulse Discharge Thermal Transient Formulation",
-      "level": "Beginner",
-      "duration": "30 mins",
-      "config_file": "configs/pulse_transient.json",
-      "summary": "Model millisecond-level ohmic drop and second-level diffusion polarization under repetitive 10C launch pulses in electric powertrains.",
-      "inputs": [
-        "10-second peak power acceleration profile",
-        "Starting pack temperature 25\u00b0C"
+      "id": "module-1",
+      "title": "Balance generated and rejected heat",
+      "objective": "Use steady-state rise and the time constant to predict a first-order response.",
+      "minutes": 12,
+      "steps": [
+        "Read ThermalParameters and analytical_step in src/battery_thermal.py.",
+        "Apply 300 W heat, 20 W/K cooling, 6,000 J/K thermal capacity, and 25°C ambient.",
+        "Predict the asymptotic rise of 15 K and the five-minute time constant, then run."
       ],
-      "parameters": {
-        "PeakCurrent_A": 650.0,
-        "OhmicResistance_mohm": 32.0,
-        "EffectiveHeatCap_J_K": 14500.0
+      "preset": {
+        "heatW": 300,
+        "coolingWK": 20,
+        "capacityJPerK": 6000,
+        "ambientC": 25
       },
       "checkpoints": [
-        "Verify instant voltage dip within inverter minimum limit",
-        "Check adiabatic core temperature spike"
-      ]
+        {
+          "label": "Temperature at one time constant",
+          "metric": "temperatureC",
+          "operator": "==",
+          "expected": 34.481808,
+          "tolerance": 0.02,
+          "atTime": 5
+        },
+        {
+          "label": "Near-steady temperature at one hour",
+          "metric": "temperatureC",
+          "operator": "==",
+          "expected": 39.999908,
+          "tolerance": 0.02,
+          "atTime": 60
+        }
+      ],
+      "reflection": "Why does the same temperature difference have the same numerical value in kelvin and degrees Celsius?",
+      "source_paths": [
+        "src/battery_thermal.py",
+        "tests/test_models.py"
+      ],
+      "level": "Foundation"
     },
     {
-      "id": "L02",
-      "title": "Inverter Ripple Current Harmonic Decomposition (PWM Spectrum)",
-      "level": "Intermediate",
-      "duration": "45 mins",
-      "config_file": "configs/inverter_harmonics.json",
-      "summary": "Compute RMS ripple current across space vector pulse-width modulation (SVPWM) switching intervals up to 20 kHz.",
-      "inputs": [
-        "Inverter modulation index M = 0.85",
-        "Motor power factor cos(phi) = 0.82"
+      "id": "module-2",
+      "title": "Translate a current change into heat",
+      "objective": "Recognize quadratic Joule heating while holding the thermal path fixed.",
+      "minutes": 15,
+      "steps": [
+        "Treat the baseline 300 W as I²R for an illustrative operating point.",
+        "Double current conceptually while keeping resistance fixed; set heat to 1,200 W.",
+        "Predict a fourfold steady temperature rise and compare the one-hour result."
       ],
-      "parameters": {
-        "SwitchingFreq_kHz": 16.0,
-        "DC_Bus_Voltage_V": 800.0,
-        "PhaseCurrent_RMS_A": 320.0
+      "preset": {
+        "heatW": 1200,
+        "coolingWK": 20,
+        "capacityJPerK": 6000,
+        "ambientC": 25
       },
       "checkpoints": [
-        "Decompose Fourier harmonics at 2x switching frequency",
-        "Quantify DC-link capacitor RMS heating current"
-      ]
+        {
+          "label": "Fourfold-heat near-steady temperature",
+          "metric": "temperatureC",
+          "operator": "==",
+          "expected": 84.999631,
+          "tolerance": 0.02,
+          "atTime": 60
+        },
+        {
+          "label": "Rejected heat approaches 1,200 W",
+          "metric": "heatRemovedW",
+          "operator": "==",
+          "expected": 1199.992627,
+          "tolerance": 0.02,
+          "atTime": 60
+        }
+      ],
+      "reflection": "Why would a real cell with temperature-dependent resistance deviate from this constant-parameter comparison?",
+      "source_paths": [
+        "src/battery_thermal.py",
+        "tests/test_models.py"
+      ],
+      "level": "Parameter study"
     },
     {
-      "id": "L03",
-      "title": "DC-Link Film vs. Electrolytic Sizing & Thermal Aging Engine",
-      "level": "Advanced",
-      "duration": "60 mins",
-      "config_file": "configs/capacitor_sizing.json",
-      "summary": "Size required capacitance to limit peak-to-peak voltage ripple to < 2% while evaluating hot-spot temperature and dielectric lifetime.",
-      "inputs": [
-        "Allowable voltage ripple delta V = 16 V",
-        "Max inverter step load transition"
+      "id": "module-3",
+      "title": "Choose a cooling sensitivity",
+      "objective": "Separate the effects of cooling conductance on steady rise and response time.",
+      "minutes": 12,
+      "steps": [
+        "Keep heat at 1,200 W and thermal capacity at 6,000 J/K.",
+        "Increase conductance from 20 to 80 W/K and predict both response speed and final temperature.",
+        "Read the test that compares weak and strong cooling in the native model."
       ],
-      "parameters": {
-        "Capacitance_uF": 550.0,
-        "ESR_mohm": 1.2,
-        "ThermalResistance_K_W": 4.8
+      "preset": {
+        "heatW": 1200,
+        "coolingWK": 80,
+        "capacityJPerK": 6000,
+        "ambientC": 25
       },
       "checkpoints": [
-        "Verify lifetime expectation > 100,000 hours",
-        "Ensure ripple voltage criteria satisfied across all operating quadrants"
-      ]
+        {
+          "label": "Recovered near-steady temperature is 40°C",
+          "metric": "temperatureC",
+          "operator": "==",
+          "expected": 40,
+          "tolerance": 0.02,
+          "atTime": 60
+        },
+        {
+          "label": "Stored heat tends to 90 kJ",
+          "metric": "storedEnergyKJ",
+          "operator": "==",
+          "expected": 90,
+          "tolerance": 0.02,
+          "atTime": 60
+        }
+      ],
+      "reflection": "Why is specifying a conductance different from selecting a fan, cold plate, or coolant flow rate?",
+      "source_paths": [
+        "src/battery_thermal.py",
+        "tests/test_models.py"
+      ],
+      "level": "Stress test"
     },
     {
-      "id": "L04",
-      "title": "Cross-Platform Python-MATLAB Co-Simulation Benchmark",
-      "level": "Production",
-      "duration": "75 mins",
-      "config_file": "configs/cosimulation_bridge.json",
-      "summary": "Execute automated verification suite comparing Python numerical integrator with MATLAB ode45, guaranteeing relative error < 10^-5.",
-      "inputs": [
-        "Standardized 600-second driving schedule",
-        "Identical parameter JSON specification"
+      "id": "module-4",
+      "title": "Transfer the accounting habit to DC-link sizing",
+      "objective": "Keep energy, power, waveform, and boundary assumptions explicit across two reference models.",
+      "minutes": 18,
+      "steps": [
+        "Use 1,200 W, 80 W/K, 60,000 J/K, and 35°C ambient to inspect a slower thermal transient.",
+        "At ten minutes, reconcile stored heat with temperature rise and thermal capacity.",
+        "Read the two functions in src/dc_link.py and identify which uses a triangular current waveform and which uses capacitor-energy change."
       ],
-      "parameters": {
-        "AbsTolerance": 1e-06,
-        "RelTolerance": 1e-05,
-        "TimeStep_sec": 0.001
+      "preset": {
+        "heatW": 1200,
+        "coolingWK": 80,
+        "capacityJPerK": 60000,
+        "ambientC": 35
       },
       "checkpoints": [
-        "Generate automated parity plot",
-        "Pass CI automated regression verification test"
-      ]
+        {
+          "label": "Temperature after ten minutes",
+          "metric": "temperatureC",
+          "operator": "==",
+          "expected": 43.260066,
+          "tolerance": 0.02,
+          "atTime": 10
+        },
+        {
+          "label": "Stored energy after ten minutes",
+          "metric": "storedEnergyKJ",
+          "operator": "==",
+          "expected": 495.603932,
+          "tolerance": 0.02,
+          "atTime": 10
+        }
+      ],
+      "reflection": "What additional component tolerances, switching behavior, or control dynamics would be needed before selecting a DC-link capacitor?",
+      "source_paths": [
+        "src/dc_link.py",
+        "src/battery_thermal.py",
+        "matlab/dc_link_ripple.m"
+      ],
+      "level": "Transfer to source"
     }
-  ]
+  ],
+  "source": {
+    "commit": "42bd78c6429865fa35376f98b6b58de0151c58fb",
+    "audited_at": "2026-10-19T08:39:24Z",
+    "url": "https://github.com/mohammadrezwankhan/battery-power-models/tree/42bd78c6429865fa35376f98b6b58de0151c58fb",
+    "calibration_status": "synthetic-analytical-fixtures",
+    "scope": "This browser lab is a standalone teaching approximation. Use the linked source for the project implementation."
+  },
+  "dashboard_url": "https://mohammadrezwankhan.github.io/battery-power-models/"
 }
