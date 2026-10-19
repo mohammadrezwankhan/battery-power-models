@@ -1,0 +1,93 @@
+{
+  "repository": "battery-power-models",
+  "domain": "DOMAIN_A",
+  "title": "Battery Power & DC-Link Models",
+  "version": "2.0.0",
+  "author": "Mohammad Rezwan Khan",
+  "lessons": [
+    {
+      "id": "L01",
+      "title": "High-Rate Pulse Discharge Thermal Transient Formulation",
+      "level": "Beginner",
+      "duration": "30 mins",
+      "config_file": "configs/pulse_transient.json",
+      "summary": "Model millisecond-level ohmic drop and second-level diffusion polarization under repetitive 10C launch pulses in electric powertrains.",
+      "inputs": [
+        "10-second peak power acceleration profile",
+        "Starting pack temperature 25\u00b0C"
+      ],
+      "parameters": {
+        "PeakCurrent_A": 650.0,
+        "OhmicResistance_mohm": 32.0,
+        "EffectiveHeatCap_J_K": 14500.0
+      },
+      "checkpoints": [
+        "Verify instant voltage dip within inverter minimum limit",
+        "Check adiabatic core temperature spike"
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "Inverter Ripple Current Harmonic Decomposition (PWM Spectrum)",
+      "level": "Intermediate",
+      "duration": "45 mins",
+      "config_file": "configs/inverter_harmonics.json",
+      "summary": "Compute RMS ripple current across space vector pulse-width modulation (SVPWM) switching intervals up to 20 kHz.",
+      "inputs": [
+        "Inverter modulation index M = 0.85",
+        "Motor power factor cos(phi) = 0.82"
+      ],
+      "parameters": {
+        "SwitchingFreq_kHz": 16.0,
+        "DC_Bus_Voltage_V": 800.0,
+        "PhaseCurrent_RMS_A": 320.0
+      },
+      "checkpoints": [
+        "Decompose Fourier harmonics at 2x switching frequency",
+        "Quantify DC-link capacitor RMS heating current"
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "DC-Link Film vs. Electrolytic Sizing & Thermal Aging Engine",
+      "level": "Advanced",
+      "duration": "60 mins",
+      "config_file": "configs/capacitor_sizing.json",
+      "summary": "Size required capacitance to limit peak-to-peak voltage ripple to < 2% while evaluating hot-spot temperature and dielectric lifetime.",
+      "inputs": [
+        "Allowable voltage ripple delta V = 16 V",
+        "Max inverter step load transition"
+      ],
+      "parameters": {
+        "Capacitance_uF": 550.0,
+        "ESR_mohm": 1.2,
+        "ThermalResistance_K_W": 4.8
+      },
+      "checkpoints": [
+        "Verify lifetime expectation > 100,000 hours",
+        "Ensure ripple voltage criteria satisfied across all operating quadrants"
+      ]
+    },
+    {
+      "id": "L04",
+      "title": "Cross-Platform Python-MATLAB Co-Simulation Benchmark",
+      "level": "Production",
+      "duration": "75 mins",
+      "config_file": "configs/cosimulation_bridge.json",
+      "summary": "Execute automated verification suite comparing Python numerical integrator with MATLAB ode45, guaranteeing relative error < 10^-5.",
+      "inputs": [
+        "Standardized 600-second driving schedule",
+        "Identical parameter JSON specification"
+      ],
+      "parameters": {
+        "AbsTolerance": 1e-06,
+        "RelTolerance": 1e-05,
+        "TimeStep_sec": 0.001
+      },
+      "checkpoints": [
+        "Generate automated parity plot",
+        "Pass CI automated regression verification test"
+      ]
+    }
+  ]
+}
