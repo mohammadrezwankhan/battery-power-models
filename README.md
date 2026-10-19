@@ -6,7 +6,7 @@ Dependency-free Python references and MATLAB equivalents cover lumped battery he
 
 ## Previous animations
 
-[Open the previous-animation gallery](https://mohammadrezwankhan.github.io/battery-power-models/animations/) · [Local gallery](docs/animations/index.html)
+[Open the live lab](https://mohammadrezwankhan.github.io/battery-power-models/) → **Previous animations** · [Open the local gallery](docs/animations/index.html)
 
 Earlier animated artwork, waveform demos, and original interactive experiences are linked alongside the current animations.
 
