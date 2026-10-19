@@ -1,0 +1,10 @@
+{
+  "repository": "battery-power-models",
+  "diagrams": [
+    "diagrams/lumped-pouch-thermal.svg"
+  ],
+  "fidelity": {
+    "diagrams/lumped-pouch-thermal.svg": "Source-defined first-order lumped thermal model; no cell-specific spatial field."
+  },
+  "reason": "Matches its first-order thermal response example; shows one thermal state, not DC-link sizing."
+}

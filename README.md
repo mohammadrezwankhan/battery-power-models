@@ -1,175 +1,158 @@
-<div align="center">
+![Battery and Power Reference Lab: original vector system illustration](assets/hero-25d.svg)
 
-<img src="assets/hero-25d.svg" alt="Battery Power & DC-Link Models 2.5D Architecture" width="100%">
+Dependency-free Python references and MATLAB equivalents cover lumped battery heating and DC-link sizing. The browser lab follows the thermal balance and directs electrical sizing questions to the native functions.
 
-# Battery Power & DC-Link Models
+**[Native-source lesson guide](docs/portfolio/) · [Offline interactive lab](docs/index.html) · [Lesson configuration](docs/lesson-config.json) · [Configuration schema](docs/lesson-config.schema.json)**
 
-**High-Voltage DC-Link Ripple Analysis, Capacitor Lifetime & Fast Transients**
+## Your first interactive result
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-00E5FF.svg?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
-[![Interactive Dashboard](https://img.shields.io/badge/Interactive_Dashboard-Live_on_Pages-00E676.svg?style=for-the-badge&logo=githubpages&logoColor=white)](https://mohammadrezwankhan.github.io/battery-power-models/)
-[![Lessons](https://img.shields.io/badge/Lessons_Configured-04_Modules-B388FF.svg?style=for-the-badge)](docs/lesson-config.json)
+1. Download or clone this repository and open `docs/index.html` in a modern browser.
+2. Select **Module 1**, apply its preset, and compare the declared checkpoint with the plotted result.
+3. Change one slider, inspect the model assumptions, then export the configuration or telemetry for your notes.
 
-<p align="center">
-  <a href="https://mohammadrezwankhan.github.io/battery-power-models/"><strong>Explore Live 2.5D Dashboard &rarr;</strong></a> ·
-  <a href="#quickstart">Quickstart</a> ·
-  <a href="#lesson-configuration-matrix">Lesson Labs</a> ·
-  <a href="#verification-benchmarks">Benchmarks</a> ·
-  <a href="#citation">Citation</a>
-</p>
+The browser lab runs offline with no packages, accounts, or live data feeds. Its numbers are deterministic teaching simulations. Each checkpoint states its model time and tolerance; passing it demonstrates agreement with that model, not field calibration or production readiness.
 
-</div>
-
----
-
-> [!NOTE]
-> **Industrial & Educational Benchmark:** This repository serves as a flagship, peer-reviewed engineering asset developed by **[Mohammad Rezwan Khan](https://github.com/mohammadrezwankhan)**. All models, simulation scripts, and laboratory configurations are strictly audited for numerical convergence, reproducibility, and industrial standard compliance.
-
-> [!TIP]
-> **Interactive 2.5D Dashboard:** Visit the companion interactive dashboard hosted directly on GitHub Pages at **[https://mohammadrezwankhan.github.io/battery-power-models/](https://mohammadrezwankhan.github.io/battery-power-models/)** to adjust excitation parameters, test live frequency/thermal waveforms, and inspect progressive lab modules in real time.
-
----
-
-## 🏛️ System Architecture & 2.5D Visual Topology
-
-The repository is structured across three decoupled layers visually depicted in our 2.5D isometric platform:
-
-1. **Layer 01: Physical & Hardware Boundary Layer**
-   - Encapsulates electrochemical, thermal, and circuit hardware properties (cell chemistry, internal impedance, cooling cold-plate hydraulic dimensions, and transformer ratings).
-2. **Layer 02: Computational & Digital Twin Core**
-   - Solves coupled nonlinear differential equations, Kalman filtering state estimation, and model predictive control optimization algorithms with guaranteed mathematical boundedness.
-3. **Layer 03: Telemetry, Dispatch & Interactive API Layer**
-   - Exposes zero-friction CLI runners, interactive web dashboards, automated GitHub Actions regression verification suites, and production JSON configuration manifests.
-
-```
-       ▲  [LAYER 03: TELEMETRY & DISPATCH]   --> Web Dashboard, REST API, Automated CI
-      / \
-     ▲   ▲ [LAYER 02: NUMERICAL CORE]        --> Differential Solvers, EKF, Optimization
-    / \ / \
-   ▲   ▲   ▲ [LAYER 01: HARDWARE BOUNDS]     --> Equivalent Circuit, Thermal Mesh, Grid POI
-```
-
----
-
-## 🚀 Quickstart
-
-Run the full reproduction test suite locally with zero manual setup:
-
-```bash
-# Clone the repository
-git clone https://github.com/mohammadrezwankhan/battery-power-models.git
-cd battery-power-models
-
-# Option A: Python Environment
-pip install -r requirements.txt
-python -m unittest discover -s tests -p "*_test.py"
-
-# Option B: Launch Local 2.5D Interactive Dashboard
-cd docs && python -m http.server 8080
-# Open http://localhost:8080 in your browser
-```
-
----
-
-## 📚 Lesson Configuration Matrix
-
-This repository includes a progressive 4-part industrial lab curriculum. Each lesson provides self-contained parameters, test scripts, and automated telemetry checkpoints stored in [`docs/lesson-config.json`](docs/lesson-config.json).
-
-| Lesson ID | Level | Duration | Module Target | Core Objective |
-| :--- | :--- | :--- | :--- | :--- |
-| **`L01`** | `Beginner` | `30 mins` | `configs/pulse_transient.json` | High-Rate Pulse Discharge Thermal Transient Formulation |
-| **`L02`** | `Intermediate` | `45 mins` | `configs/inverter_harmonics.json` | Inverter Ripple Current Harmonic Decomposition (PWM Spectrum) |
-| **`L03`** | `Advanced` | `60 mins` | `configs/capacitor_sizing.json` | DC-Link Film vs. Electrolytic Sizing & Thermal Aging Engine |
-| **`L04`** | `Production` | `75 mins` | `configs/cosimulation_bridge.json` | Cross-Platform Python-MATLAB Co-Simulation Benchmark |
-
+<!-- source-mapped-visuals:start -->
 
 <details>
-<summary><strong>🔍 Click to expand detailed lesson specifications</strong></summary>
+<summary>System topology and model boundaries</summary>
 
-### L01: High-Rate Pulse Discharge Thermal Transient Formulation
-- **Complexity Level:** `Beginner` | **Estimated Time:** `30 mins`
-- **Target File:** `configs/pulse_transient.json`
-- **Objective:** Model millisecond-level ohmic drop and second-level diffusion polarization under repetitive 10C launch pulses in electric powertrains.
-- **Key Inputs:** 10-second peak power acceleration profile, Starting pack temperature 25°C
-- **Calibrated Parameters:** `{"PeakCurrent_A": 650.0, "OhmicResistance_mohm": 32.0, "EffectiveHeatCap_J_K": 14500.0}`
-- **Verification Criteria:**
-  - [x] Verify instant voltage dip within inverter minimum limit
-  - [x] Check adiabatic core temperature spike
+![Lumped pouch thermal](assets/svg-2.5d/diagrams/lumped-pouch-thermal.svg)
 
-### L02: Inverter Ripple Current Harmonic Decomposition (PWM Spectrum)
-- **Complexity Level:** `Intermediate` | **Estimated Time:** `45 mins`
-- **Target File:** `configs/inverter_harmonics.json`
-- **Objective:** Compute RMS ripple current across space vector pulse-width modulation (SVPWM) switching intervals up to 20 kHz.
-- **Key Inputs:** Inverter modulation index M = 0.85, Motor power factor cos(phi) = 0.82
-- **Calibrated Parameters:** `{"SwitchingFreq_kHz": 16.0, "DC_Bus_Voltage_V": 800.0, "PhaseCurrent_RMS_A": 320.0}`
-- **Verification Criteria:**
-  - [x] Decompose Fourier harmonics at 2x switching frequency
-  - [x] Quantify DC-link capacitor RMS heating current
+Source-defined first-order lumped thermal model; no cell-specific spatial field.
 
-### L03: DC-Link Film vs. Electrolytic Sizing & Thermal Aging Engine
-- **Complexity Level:** `Advanced` | **Estimated Time:** `60 mins`
-- **Target File:** `configs/capacitor_sizing.json`
-- **Objective:** Size required capacitance to limit peak-to-peak voltage ripple to < 2% while evaluating hot-spot temperature and dielectric lifetime.
-- **Key Inputs:** Allowable voltage ripple delta V = 16 V, Max inverter step load transition
-- **Calibrated Parameters:** `{"Capacitance_uF": 550.0, "ESR_mohm": 1.2, "ThermalResistance_K_W": 4.8}`
-- **Verification Criteria:**
-  - [x] Verify lifetime expectation > 100,000 hours
-  - [x] Ensure ripple voltage criteria satisfied across all operating quadrants
-
-### L04: Cross-Platform Python-MATLAB Co-Simulation Benchmark
-- **Complexity Level:** `Production` | **Estimated Time:** `75 mins`
-- **Target File:** `configs/cosimulation_bridge.json`
-- **Objective:** Execute automated verification suite comparing Python numerical integrator with MATLAB ode45, guaranteeing relative error < 10^-5.
-- **Key Inputs:** Standardized 600-second driving schedule, Identical parameter JSON specification
-- **Calibrated Parameters:** `{"AbsTolerance": 1e-06, "RelTolerance": 1e-05, "TimeStep_sec": 0.001}`
-- **Verification Criteria:**
-  - [x] Generate automated parity plot
-  - [x] Pass CI automated regression verification test
+Motion is optional; the vector topology remains readable with reduced motion enabled.
 
 </details>
 
----
+<!-- source-mapped-visuals:end -->
 
-## 📊 Verification Benchmarks
+## Four-module learning path
 
-| Metric Benchmark | Reference Baseline | Proposed Framework | Improvement | Verification Status |
-| :--- | :--- | :--- | :--- | :--- |
-| Estimation Error (RMSE) | 3.85% | **0.94%** | **-75.5% Error** | Passed CI Automated Suite |
-| Computational Runtime | 142 ms / step | **18 ms / step** | **7.8x Speedup** | Benchmarked on standard x86 |
-| Memory Footprint | 480 MB | **64 MB** | **-86.6% RAM** | Profiled via memory profiler |
-| Numerical Stability Margin | Divergence @ 10 kHz | **Stable to 100 kHz** | **10x Stability Window** | 100,000 Step Monte Carlo Run |
+| Module | Investigation | Approximate time |
+|---|---|---:|
+| 1. Balance generated and rejected heat | Use steady-state rise and the time constant to predict a first-order response. | 12 min |
+| 2. Translate a current change into heat | Recognize quadratic Joule heating while holding the thermal path fixed. | 15 min |
+| 3. Choose a cooling sensitivity | Separate the effects of cooling conductance on steady rise and response time. | 12 min |
+| 4. Transfer the accounting habit to DC-link sizing | Keep energy, power, waveform, and boundary assumptions explicit across two reference models. | 18 min |
 
----
+**Who this is for:** Engineers and students making early thermal and power-electronics sensitivity checks.
 
-## 📜 Citation
+### Continue into the implementation
 
-If you use this repository, its models, or the accompanying interactive 2.5D curriculum in academic or industrial research, please cite:
+- [README.md](README.md)
+- [src/battery_thermal.py](src/battery_thermal.py)
+- [src/dc_link.py](src/dc_link.py)
+- [matlab/battery_thermal_lumped.m](matlab/battery_thermal_lumped.m)
+- [matlab/dc_link_ripple.m](matlab/dc_link_ripple.m)
+- [tests/test_models.py](tests/test_models.py)
+- [tests/test_input_validation.py](tests/test_input_validation.py)
 
-```bibtex
-@software{khan_battery_power_models,
-  author       = {Mohammad Rezwan Khan},
-  title        = {{Battery Power & DC-Link Models: High-Voltage DC-Link Ripple Analysis, Capacitor Lifetime & Fast Transients}},
-  year         = {2026},
-  publisher    = {GitHub},
-  journal      = {GitHub Repository},
-  howpublished = {\url{https://github.com/mohammadrezwankhan/battery-power-models}}
-}
+### Explore or run the source
+
+Python 3.10+; no third-party Python dependencies. MATLAB is optional for the equivalent functions.
+
+```bash
+python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv
+python src/dc_link.py
+python -m unittest discover -s tests -v
 ```
 
----
+These commands come from the audited source revision. Runtime requirements and the project's own validation limits are documented below; the standalone browser lab does not execute these commands.
 
-## ⭐ Star History
+The detailed project guide below remains the source for installation, supported features, licences, and scientific limits. The browser equations and laboratory settings do not change the original application or numerical engine.
 
-Join our growing community of engineers, researchers, and developers pushing open-source energy storage and computational modeling forward:
+<details>
+<summary>Project documentation, installation, attribution, and existing validation</summary>
 
-<div align="center">
-  <a href="https://star-history.com/#mohammadrezwankhan/battery-power-models&Date">
-    <img src="https://api.star-history.com/svg?repos=mohammadrezwankhan/battery-power-models&type=Date" alt="Star History Chart" width="80%">
-  </a>
-</div>
+# Battery and Power Electronics Reference Models
 
----
+[![Last commit](https://img.shields.io/github/last-commit/mohammadrezwankhan/battery-power-models?style=flat-square)](https://github.com/mohammadrezwankhan/battery-power-models/commits/main)
+[![Open issues](https://img.shields.io/github/issues/mohammadrezwankhan/battery-power-models?style=flat-square)](https://github.com/mohammadrezwankhan/battery-power-models/issues)
+[![License](https://img.shields.io/github/license/mohammadrezwankhan/battery-power-models?style=flat-square)](https://github.com/mohammadrezwankhan/battery-power-models/blob/main/LICENSE)
 
-<p align="center">
-  Distributed under the MIT License. Built with pride by <a href="https://github.com/mohammadrezwankhan"><strong>Mohammad Rezwan Khan</strong></a>.
-</p>
+Small, inspectable reference models for early battery-thermal and DC-link design checks. The repository favors explicit equations, stated assumptions, and tests over opaque tooling.
+
+## Start Here
+
+- [Models](#models) explains the equations and engineering questions.
+- [Quick start](#quick-start) runs the Python and test paths from a clean clone.
+- [Engineering boundary](#engineering-boundary) defines what the references do not certify.
+- [Repository layout](#repository-layout) points to the Python, MATLAB, and test implementations.
+- [Contributing](CONTRIBUTING.md) and [citation metadata](CITATION.cff) support shared work.
+
+## Models
+
+### Lumped Battery Thermal Response
+
+`src/battery_thermal.py` solves a first-order cell thermal balance for a piecewise-constant current profile:
+
+```text
+C_th dT/dt = I^2 R - hA(T - T_ambient)
+```
+
+The implementation uses the analytical state update over each time step. It is useful for sensitivity checks involving current, internal resistance, thermal capacitance, ambient temperature, and effective cooling conductance.
+
+### DC-Link Ripple and Capacitance
+
+`src/dc_link.py` contains two transparent sizing relationships:
+
+- Voltage ripple from an assumed triangular capacitor-current waveform.
+- Minimum capacitance for an energy pulse at a specified bus voltage and allowed voltage drop.
+
+MATLAB equivalents are provided in `matlab/` for model-based engineering workflows.
+
+## Quick start
+
+Python 3.10 or later is sufficient; there are no third-party runtime dependencies.
+
+```bash
+python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv
+python src/dc_link.py
+python -m unittest discover -s tests -v
+```
+
+In MATLAB, the thermal function accepts an optional parameter struct and an
+optional initial temperature. Missing parameter fields use the reference
+defaults; the initial temperature defaults to the configured ambient value.
+
+```matlab
+addpath('matlab');
+temperature_c = battery_thermal_lumped([80 80], 1, struct('ambient_c', 30));
+results = runtests('matlab/tests');
+assertSuccess(results);
+```
+
+## Repository Layout
+
+```text
+src/       # dependency-free Python reference implementations
+matlab/    # MATLAB equivalents for model-based workflows
+tests/     # regression tests for the Python references
+```
+
+## Engineering Boundary
+
+These are reference models, not production-qualified battery, BMS, inverter, or safety models. They do not replace electrochemical characterization, CFD/FEA, component tolerances, control-loop analysis, standards compliance, or test evidence. Inputs and assumptions must be replaced with project-specific data before an engineering decision is made.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for focused documentation, model, and
+validation changes. Please keep units, assumptions, and project-specific data
+visible in any example you add.
+
+## Citation
+
+For research, teaching, or technical reports, use the machine-readable
+[CITATION.cff](CITATION.cff) metadata and identify the model inputs and
+assumptions used in the result.
+
+## Author
+
+[Mohammad Rezwan Khan](https://mrkhan.co.technology/) - Electrical R&D Engineer and PhD in Energy Technology.
+
+## License
+
+[MIT](LICENSE)
+
+</details>
