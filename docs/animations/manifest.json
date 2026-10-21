@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "repository": "battery-power-models",
+  "preserved_current_commit": "35ab3adefe2fa173781133a3daf0f348ffc28064",
+  "animations": [
+    {
+      "kind": "image",
+      "title": "Original floating-layer SVG",
+      "badge": "Earlier animated media",
+      "description": "Floating isometric tiers, pulsing circuits, and flowing dashed traces from the earlier repository hero.",
+      "format": "Animated SVG",
+      "preview": "media/hero-25d-cbf302005ff1.svg",
+      "preview_sha256": "bdb212e1a2cfce60d63ebd6b000a8c64683dd9388e9f8985e1391057f8f14692",
+      "motion_identity": "cbf302005ff16758600ba48f87605c7f6128d021de4d4865c66fd458b737e649",
+      "sources": [
+        {
+          "path": "assets/hero-25d.svg",
+          "commit": "199e93ed4aaf73855bd7da42b02df5101f1b3c64",
+          "sha256": "5c52116fbcff33456e2abc5d3f77e68e551e6472f6036f9ca696b9132e7d055f",
+          "blob": "90c3c70f0846f50eee08a4aa6c5006c081f3f554",
+          "url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/199e93ed4aaf73855bd7da42b02df5101f1b3c64/assets/hero-25d.svg"
+        },
+        {
+          "path": "assets/hero-25d.svg",
+          "commit": "ecd84ce29004e457487e92c1b31f7831e7c574a4",
+          "sha256": "86f84d8afb36bec9ef0553f9b52d57368372607c526f59b3b8d175d6b34da6fe",
+          "blob": "1a0717301f281d8fc8ede117f37aa9df49e7ddef",
+          "url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/ecd84ce29004e457487e92c1b31f7831e7c574a4/assets/hero-25d.svg"
+        }
+      ]
+    },
+    {
+      "kind": "waveform",
+      "title": "Original interactive waveform",
+      "badge": "Previous dashboard animation",
+      "description": "The earlier 2.5D perspective card and its moving waveform, with the original visual formulas and sliders.",
+      "preview": "waveform.html",
+      "preview_sha256": "170895c3d56d5fefa25f1e0a6ea7cdf3842632409ead4d461986cced3b46ffe0",
+      "sources": [
+        {
+          "path": "docs/index.html",
+          "commit": "199e93ed4aaf73855bd7da42b02df5101f1b3c64",
+          "blob": "b472fc39b312ee648cee659306854e52f50a7879",
+          "sha256": "f7f3c34be73b0fbe310c9ec3d1ae5ee1215857b0cdc749dc8e34eb9da967bd3e",
+          "url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/199e93ed4aaf73855bd7da42b02df5101f1b3c64/docs/index.html"
+        },
+        {
+          "path": "docs/index.html",
+          "commit": "ecd84ce29004e457487e92c1b31f7831e7c574a4",
+          "blob": "7d9602f6686505402851dae6ec50b78de3f9fbc4",
+          "sha256": "c7dd2f1e17201271033540d0df2218c0ce9f651d65f075ca3f36e798aaa7e6d4",
+          "url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/ecd84ce29004e457487e92c1b31f7831e7c574a4/docs/index.html"
+        }
+      ]
+    }
+  ],
+  "native_links": [],
+  "historical_source_links": []
+}
