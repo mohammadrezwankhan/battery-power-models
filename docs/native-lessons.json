@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "repository": {
+    "name": "battery-power-models",
+    "name_with_owner": "mohammadrezwankhan/battery-power-models",
+    "url": "https://github.com/mohammadrezwankhan/battery-power-models"
+  },
+  "native_source": {
+    "commit": "199e93ed4aaf73855bd7da42b02df5101f1b3c64",
+    "url": "https://github.com/mohammadrezwankhan/battery-power-models/tree/199e93ed4aaf73855bd7da42b02df5101f1b3c64",
+    "source_path_override": null
+  },
+  "browser_lab_package_provenance": {
+    "commit": "42bd78c6429865fa35376f98b6b58de0151c58fb",
+    "url": "https://github.com/mohammadrezwankhan/battery-power-models/tree/42bd78c6429865fa35376f98b6b58de0151c58fb",
+    "scope": "This browser lab is a standalone teaching approximation. Use the linked source for the project implementation.",
+    "calibration_status": "synthetic-analytical-fixtures",
+    "config_path": "docs/lesson-config.json"
+  },
+  "native_catalog_source": "Tracked Markdown in source lesson, example, study-case, concept, model, and documentation paths.",
+  "native_material_count": 1,
+  "reproduction_command_count": 3,
+  "materials": [
+    {
+      "id": "doc-8ec9a00bfd09",
+      "title": "Battery and Power Electronics Reference Models",
+      "path": "README.md",
+      "line": 1,
+      "source_paths": [
+        "README.md"
+      ],
+      "source_url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/42bd78c6429865fa35376f98b6b58de0151c58fb/README.md#L1",
+      "source_revision": "42bd78c6429865fa35376f98b6b58de0151c58fb",
+      "source_kind": "historical-reconciled-readme",
+      "source_label": "Historical README/source guide at 42bd78c64298",
+      "catalog_url": null,
+      "native_url": null,
+      "excerpt": "Small, inspectable reference models for early battery-thermal and DC-link design checks. The repository favors explicit equations, stated assumptions, and tests over opaque tooling.",
+      "type": "Native overview",
+      "section": "scope",
+      "tags": [
+        "model",
+        "scope",
+        "verification"
+      ],
+      "track": null,
+      "lesson_id": null,
+      "source_blob_path": "README.md",
+      "source_blob_sha256": "83893c476643ddbea0a600f3f41eefd70c76c06252bc411d47a8292373c4069e",
+      "source_blob_retrieval": "git-show",
+      "source_blob_cache": null
+    }
+  ],
+  "commands": [
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "label": "Source-defined validation command",
+      "path": ".github/workflows/markdown-maintenance.yml",
+      "line": 38,
+      "execution_context": "Shell (`run:` workflow step)",
+      "evidence_kind": "workflow-run",
+      "source_url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/199e93ed4aaf73855bd7da42b02df5101f1b3c64/.github/workflows/markdown-maintenance.yml#L38"
+    },
+    {
+      "command": "python src/battery_thermal.py --current 80 --duration 900 --output \"$RUNNER_TEMP/thermal_trace.csv\"",
+      "label": "Source-defined example command",
+      "path": ".github/workflows/markdown-maintenance.yml",
+      "line": 41,
+      "execution_context": "Shell (`run:` workflow step)",
+      "evidence_kind": "workflow-run",
+      "source_url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/199e93ed4aaf73855bd7da42b02df5101f1b3c64/.github/workflows/markdown-maintenance.yml#L41"
+    },
+    {
+      "command": "python src/dc_link.py",
+      "label": "Source-defined example command",
+      "path": ".github/workflows/markdown-maintenance.yml",
+      "line": 44,
+      "execution_context": "Shell (`run:` workflow step)",
+      "evidence_kind": "workflow-run",
+      "source_url": "https://github.com/mohammadrezwankhan/battery-power-models/blob/199e93ed4aaf73855bd7da42b02df5101f1b3c64/.github/workflows/markdown-maintenance.yml#L44"
+    }
+  ],
+  "engineering_curriculum_exclusions": [],
+  "visuals": {
+    "mapped_diagrams": [
+      {
+        "path": "diagrams/lumped-pouch-thermal.svg",
+        "fidelity": "Source-defined first-order lumped thermal model; no cell-specific spatial field."
+      }
+    ],
+    "section_banners": [
+      "section-01-question.svg",
+      "section-02-equations.svg",
+      "section-03-reproduce.svg",
+      "section-04-verification.svg",
+      "section-05-scope.svg"
+    ]
+  },
+  "native_document_banner_insertions": [],
+  "native_document_banner_audit": {
+    "schema_version": 1,
+    "eligibility_rule": "Tracked indexed Markdown in an examples, tutorials, lessons, studies, study-cases, concepts or notes directory, or whose path/title explicitly names a lesson, tutorial, example, walkthrough, study case or study. Banners are based only on existing semantic heading text, never directory names.",
+    "eligible_document_count": 0,
+    "lesson_document_candidates": 0,
+    "modified_document_count": 0,
+    "banner_insertion_count": 0,
+    "audit_gap_count": 0,
+    "banners": [],
+    "audit_gaps": [],
+    "explicit_exclusions": []
+  },
+  "dashboard": {
+    "browser_lab_is_surrogate": true,
+    "native_execution_in_browser": false,
+    "localStorage_or_existing_dashboard_scripts_preserved": true
+  }
+}
