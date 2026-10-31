@@ -1,6 +1,7 @@
 import csv
 import math
 import pathlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -70,6 +71,67 @@ class ThermalInputTests(unittest.TestCase):
                 rows = list(csv.DictReader(stream))
             self.assertEqual([float(row["time_s"]) for row in rows], [0.0, 1.0])
             self.assertEqual([float(row["temperature_c"]) for row in rows], [25.0, 25.1])
+
+
+class ThermalCliTests(unittest.TestCase):
+    def test_cli_ends_at_requested_duration_and_matches_analytical_temperature(self):
+        script = pathlib.Path(__file__).resolve().parents[1] / "src" / "battery_thermal.py"
+        params = ThermalParameters()
+        for duration_s, max_step_s in ((1.0, 2.0), (10.0, 3.0)):
+            with self.subTest(duration_s=duration_s, max_step_s=max_step_s):
+                with tempfile.TemporaryDirectory() as directory:
+                    path = pathlib.Path(directory) / "trace.csv"
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            str(script),
+                            "--current", "80",
+                            "--duration", str(duration_s),
+                            "--dt", str(max_step_s),
+                            "--output", str(path),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    with path.open(newline="", encoding="utf-8") as stream:
+                        rows = list(csv.DictReader(stream))
+
+                times = [float(row["time_s"]) for row in rows]
+                self.assertAlmostEqual(times[-1], duration_s, places=12)
+                intervals = [end - start for start, end in zip(times, times[1:])]
+                self.assertTrue(all(interval <= max_step_s for interval in intervals))
+                self.assertTrue(all(math.isclose(interval, intervals[0]) for interval in intervals))
+                expected = analytical_step(25.0, 80.0, duration_s, params)
+                self.assertAlmostEqual(float(rows[-1]["temperature_c"]), expected, delta=0.0000005)
+
+    def test_cli_rejects_zero_and_negative_duration_or_maximum_step(self):
+        script = pathlib.Path(__file__).resolve().parents[1] / "src" / "battery_thermal.py"
+        for duration_s, max_step_s, message in (
+            ("0", "2", "--duration must be positive"),
+            ("-1", "2", "--duration must be positive"),
+            ("1", "0", "--dt must be positive"),
+            ("1", "-2", "--dt must be positive"),
+        ):
+            with self.subTest(duration_s=duration_s, max_step_s=max_step_s):
+                with tempfile.TemporaryDirectory() as directory:
+                    path = pathlib.Path(directory) / "trace.csv"
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            str(script),
+                            "--duration", duration_s,
+                            "--dt", max_step_s,
+                            "--output", str(path),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(message, result.stderr)
+                    self.assertFalse(path.exists())
 
 
 class DcLinkInputTests(unittest.TestCase):
