@@ -93,14 +93,20 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--current", type=float, default=80.0, help="Constant current in A")
     parser.add_argument("--duration", type=float, default=900.0, help="Simulation duration in s")
-    parser.add_argument("--dt", type=float, default=1.0, help="Time step in s")
+    parser.add_argument("--dt", type=float, default=1.0, help="Maximum time step in s")
     parser.add_argument("--output", type=Path, default=Path("thermal_trace.csv"))
     args = parser.parse_args()
 
+    if args.duration <= 0:
+        parser.error("--duration must be positive")
+    if args.dt <= 0:
+        parser.error("--dt must be positive")
+
     params = ThermalParameters()
     profile = constant_profile(args.current, args.duration, args.dt)
-    temperatures = simulate(profile, args.dt, params)
-    write_csv(args.output, profile, temperatures, args.dt)
+    interval_s = args.duration / len(profile)
+    temperatures = simulate(profile, interval_s, params)
+    write_csv(args.output, profile, temperatures, interval_s)
     print(f"Final temperature: {temperatures[-1]:.3f} degC")
     print(f"Trace written to: {args.output}")
 
