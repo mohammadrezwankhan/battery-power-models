@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
 
 
 @dataclass(frozen=True)
@@ -19,8 +20,10 @@ class ThermalParameters:
 
     def validate(self) -> None:
         for name in (
-            "resistance_ohm", "thermal_capacitance_j_per_k",
-            "cooling_conductance_w_per_k", "ambient_c",
+            "resistance_ohm",
+            "thermal_capacitance_j_per_k",
+            "cooling_conductance_w_per_k",
+            "ambient_c",
         ):
             if not math.isfinite(getattr(self, name)):
                 raise ValueError(f"{name} must be finite")
@@ -32,7 +35,9 @@ class ThermalParameters:
             raise ValueError("cooling_conductance_w_per_k must be positive")
 
 
-def analytical_step(temp_c: float, current_a: float, dt_s: float, params: ThermalParameters) -> float:
+def analytical_step(
+    temp_c: float, current_a: float, dt_s: float, params: ThermalParameters
+) -> float:
     """Advance one constant-current interval using the exact first-order solution."""
     params.validate()
     if not all(math.isfinite(value) for value in (temp_c, current_a, dt_s)):
@@ -45,7 +50,10 @@ def analytical_step(temp_c: float, current_a: float, dt_s: float, params: Therma
     decay = math.exp(
         -params.cooling_conductance_w_per_k * dt_s / params.thermal_capacitance_j_per_k
     )
-    return steady_c + (temp_c - steady_c) * decay
+    result = steady_c + (temp_c - steady_c) * decay
+    if not math.isfinite(result):
+        raise ValueError("thermal update is not representable as a finite float")
+    return result
 
 
 def simulate(
@@ -73,19 +81,35 @@ def constant_profile(current_a: float, duration_s: float, dt_s: float) -> list[f
         raise ValueError("current_a, duration_s, and dt_s must be finite")
     if duration_s <= 0 or dt_s <= 0:
         raise ValueError("duration_s and dt_s must be positive")
-    steps = math.ceil(duration_s / dt_s)
+    ratio = duration_s / dt_s
+    if not math.isfinite(ratio) or ratio > sys.maxsize:
+        raise ValueError("interval count exceeds the representable list size")
+    # A positive duration needs one interval even if the division underflows.
+    steps = max(1, math.ceil(ratio))
     return [current_a] * steps
 
 
-def write_csv(path: Path, currents_a: Iterable[float], temperatures_c: Sequence[float], dt_s: float) -> None:
+def write_csv(
+    path: Path, currents_a: Iterable[float], temperatures_c: Sequence[float], dt_s: float
+) -> None:
     currents = list(currents_a)
     if len(temperatures_c) != len(currents) + 1:
         raise ValueError("temperatures_c must contain one more value than currents_a")
+    if not math.isfinite(dt_s) or dt_s <= 0:
+        raise ValueError("dt_s must be finite and positive")
+    if not all(math.isfinite(value) for value in currents):
+        raise ValueError("currents_a must contain only finite values")
+    if not all(math.isfinite(value) for value in temperatures_c):
+        raise ValueError("temperatures_c must contain only finite values")
+    if not math.isfinite(len(currents) * dt_s):
+        raise ValueError("trace duration is not representable as a finite float")
     with path.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.writer(stream)
         writer.writerow(["time_s", "current_a", "temperature_c"])
         writer.writerow([0.0, 0.0, f"{temperatures_c[0]:.6f}"])
-        for index, (current_a, temp_c) in enumerate(zip(currents, temperatures_c[1:]), start=1):
+        for index, (current_a, temp_c) in enumerate(
+            zip(currents, temperatures_c[1:], strict=True), start=1
+        ):
             writer.writerow([index * dt_s, current_a, f"{temp_c:.6f}"])
 
 
@@ -103,12 +127,15 @@ def main() -> None:
         parser.error("--dt must be positive")
 
     params = ThermalParameters()
-    profile = constant_profile(args.current, args.duration, args.dt)
-    interval_s = args.duration / len(profile)
-    temperatures = simulate(profile, interval_s, params)
-    write_csv(args.output, profile, temperatures, interval_s)
-    print(f"Final temperature: {temperatures[-1]:.3f} degC")
-    print(f"Trace written to: {args.output}")
+    try:
+        profile = constant_profile(args.current, args.duration, args.dt)
+        interval_s = args.duration / len(profile)
+        temperatures = simulate(profile, interval_s, params)
+        write_csv(args.output, profile, temperatures, interval_s)
+    except ValueError as error:
+        parser.error(str(error))
+    sys.stdout.write(f"Final temperature: {temperatures[-1]:.3f} degC\n")
+    sys.stdout.write(f"Trace written to: {args.output}\n")
 
 
 if __name__ == "__main__":
