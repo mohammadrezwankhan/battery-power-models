@@ -2,3 +2,12 @@ __pycache__/
 *.py[cod]
 *.csv
 .DS_Store
+
+# Development tools and generated verification output
+node_modules/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+hardening-artifacts/
+.security-tools/

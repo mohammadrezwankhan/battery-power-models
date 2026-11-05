@@ -37,5 +37,14 @@ classdef TestReferenceModels < matlab.unittest.TestCase
             testCase.verifyEqual(result.minimum_capacitance_f, expected, ...
                 'RelTol', 1e-12);
         end
+
+        function finiteInputsWithUnrepresentableResultsAreRejected(testCase)
+            testCase.verifyError(@() battery_thermal_lumped(1e308, 1), ...
+                'BatteryPower:Range');
+            testCase.verifyError(@() dc_link_ripple(1, 1e-300, 1e-300, ...
+                1000, 0.01, 800, 20), 'BatteryPower:Range');
+            testCase.verifyError(@() dc_link_ripple(1, 1000, 0.01, ...
+                1e308, 1e308, 800, 20), 'BatteryPower:Range');
+        end
     end
 end

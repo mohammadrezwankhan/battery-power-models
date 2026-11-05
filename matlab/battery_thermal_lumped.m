@@ -41,5 +41,9 @@ for index = 1:numel(currents_a)
     heat_w = currents_a(index)^2 * params.resistance_ohm;
     steady_c = params.ambient_c + heat_w / params.cooling_conductance_w_per_k;
     temperature_c(index + 1) = steady_c + (temperature_c(index) - steady_c) * decay;
+    if ~isfinite(temperature_c(index + 1))
+        error('BatteryPower:Range', ...
+            'Thermal update is not representable as a finite double.');
+    end
 end
 end

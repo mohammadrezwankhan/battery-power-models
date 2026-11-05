@@ -1,0 +1,22 @@
+[dependency-groups]
+dev = ["ruff==0.17.3", "mypy==2.4.1", "pytest==9.2.0", "pytest-cov==7.1.0", "hypothesis==6.170.14"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.per-file-target-version]
+# Isolated CI scanners execute on Python 3.12; application support stays unchanged.
+".github/security/*.py" = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "S", "A", "C4", "DTZ", "T20", "SIM", "RET", "ARG", "PTH", "PERF", "RUF"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+mypy_path = "src"
+files = ["src", "tests", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

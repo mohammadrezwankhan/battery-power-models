@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "source_commit": "0aa21fe47a396e75c90497d223172c008007ee28",
+  "fixture_origin": "Python baseline execution only; MATLAB parity requires actual MATLAB test execution.",
+  "relative_tolerance": 1e-09,
+  "absolute_tolerance": 1e-12,
+  "thermal": [
+    {
+      "name": "ambient",
+      "currents_a": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "dt_s": 1.0,
+      "initial_c": 25.0,
+      "params": {
+        "resistance_ohm": 0.003,
+        "thermal_capacitance_j_per_k": 5000.0,
+        "cooling_conductance_w_per_k": 4.0,
+        "ambient_c": 25.0
+      },
+      "expected_c": [
+        25.0,
+        25.0,
+        25.0,
+        25.0
+      ]
+    },
+    {
+      "name": "constant_heating",
+      "currents_a": [
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0
+      ],
+      "dt_s": 10.0,
+      "initial_c": 25.0,
+      "params": {
+        "resistance_ohm": 0.003,
+        "thermal_capacitance_j_per_k": 5000.0,
+        "cooling_conductance_w_per_k": 4.0,
+        "ambient_c": 25.0
+      },
+      "expected_c": [
+        25.0,
+        25.059760638722047,
+        25.119045099585364,
+        25.17785717681568,
+        25.236200634406018,
+        25.294079206357576,
+        25.351496596918714,
+        25.40845648082203,
+        25.46496250351953,
+        25.52101828141596,
+        25.576627402100232,
+        25.631793424575058,
+        25.686519879484702
+      ]
+    },
+    {
+      "name": "cooling",
+      "currents_a": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "dt_s": 100.0,
+      "initial_c": 80.0,
+      "params": {
+        "resistance_ohm": 0.003,
+        "thermal_capacitance_j_per_k": 5000.0,
+        "cooling_conductance_w_per_k": 4.0,
+        "ambient_c": 25.0
+      },
+      "expected_c": [
+        80.0,
+        75.77139905126496,
+        71.86790839314162,
+        68.26453235866043,
+        64.938197039053,
+        61.86760253196015,
+        59.03308654933774,
+        56.41649851168481,
+        54.00108332236766
+      ]
+    },
+    {
+      "name": "signed_current",
+      "currents_a": [
+        20.0,
+        -40.0,
+        0.0,
+        80.0,
+        -10.0
+      ],
+      "dt_s": 0.25,
+      "initial_c": 30.0,
+      "params": {
+        "resistance_ohm": 0.004,
+        "thermal_capacitance_j_per_k": 6000.0,
+        "cooling_conductance_w_per_k": 8.0,
+        "ambient_c": 20.0
+      },
+      "expected_c": [
+        30.0,
+        29.99673387771729,
+        29.993668810630943,
+        29.990338142836205,
+        29.988075073987687,
+        29.9847629343503
+      ]
+    },
+    {
+      "name": "zero_resistance",
+      "currents_a": [
+        100.0,
+        -100.0
+      ],
+      "dt_s": 1.0,
+      "initial_c": 25.0,
+      "params": {
+        "resistance_ohm": 0.0,
+        "thermal_capacitance_j_per_k": 5000.0,
+        "cooling_conductance_w_per_k": 4.0,
+        "ambient_c": 25.0
+      },
+      "expected_c": [
+        25.0,
+        25.0,
+        25.0
+      ]
+    },
+    {
+      "name": "time_constant",
+      "currents_a": [
+        80.0
+      ],
+      "dt_s": 1250.0,
+      "initial_c": 25.0,
+      "params": {
+        "resistance_ohm": 0.003,
+        "thermal_capacitance_j_per_k": 5000.0,
+        "cooling_conductance_w_per_k": 4.0,
+        "ambient_c": 25.0
+      },
+      "expected_c": [
+        25.0,
+        28.034178682377078
+      ]
+    }
+  ],
+  "dc_link": [
+    {
+      "name": "reference",
+      "arguments": [
+        20.0,
+        10000.0,
+        0.0022,
+        20000.0,
+        0.02,
+        800.0,
+        20.0
+      ],
+      "expected_ripple_vpp": 0.11363636363636363,
+      "expected_minimum_capacitance_f": 0.02531645569620253
+    },
+    {
+      "name": "zero_load",
+      "arguments": [
+        0.0,
+        1000.0,
+        0.001,
+        0.0,
+        0.0,
+        48.0,
+        1.0
+      ],
+      "expected_ripple_vpp": 0.0,
+      "expected_minimum_capacitance_f": 0.0
+    },
+    {
+      "name": "small_drop",
+      "arguments": [
+        100.0,
+        10000.0,
+        0.01,
+        1000.0,
+        0.01,
+        800.0,
+        1e-15
+      ],
+      "expected_ripple_vpp": 0.125,
+      "expected_minimum_capacitance_f": 12500000000000.0
+    },
+    {
+      "name": "large_capacitance",
+      "arguments": [
+        5.0,
+        20000.0,
+        2.0,
+        12.0,
+        0.25,
+        48.0,
+        0.5
+      ],
+      "expected_ripple_vpp": 1.5625e-05,
+      "expected_minimum_capacitance_f": 0.1256544502617801
+    }
+  ]
+}
