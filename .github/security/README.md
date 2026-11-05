@@ -24,13 +24,13 @@ It cannot inspect deleted or unreachable commits or remote refs that GitHub does
 | --- | --- | --- |
 | actionlint + zizmor | Workflow syntax and local security rules | Any reported error/finding; zizmor runs offline, so remote advisory/action metadata checks are not covered |
 | Gitleaks | Reachable Git history and a source-only working-tree snapshot | Every unsuppressed default-rule match; reports use 100% redaction |
-| Semgrep | Registered `p/security-audit` pack plus the twelve checked-in rules | Every unsuppressed finding and scanner/configuration failure; live registry pack may evolve |
+| OpenGrep | Registered `p/security-audit` pack plus the twelve checked-in rules | Every unsuppressed finding and scanner/configuration failure; live registry pack may evolve |
 | pip-audit | Static runtime, extras, build and PEP 735 dev declarations plus every requirements manifest, including scanner dependencies | Every reported vulnerability; no ignored vulnerability IDs |
 | npm audit | Every checked-in npm lockfile | HIGH/CRITICAL; all severities remain in JSON |
 | Trivy | Filesystem dependency vulnerabilities and supported misconfigurations, including dev dependencies | HIGH/CRITICAL, including unfixed vulnerabilities; database/network failures fail |
 | CodeQL | Detected Python and JavaScript/TypeScript, with security-extended queries | Analysis/upload errors fail; SARIF gate fails severity >=7 or error-level results |
 
-MATLAB and Simulink are not supported languages in the configured Semgrep/CodeQL engines.
+MATLAB and Simulink are not supported languages in the configured OpenGrep/CodeQL engines.
 The two MATLAB repositories have a separate R2026a numerical gate. Local CI configuration
 validation does not prove MATLAB execution or CodeQL/cloud scan success. Inspect their actual
 Actions runs and retained artifacts before treating those gates as passed.
@@ -86,7 +86,7 @@ coverage including tooling is recorded separately. BESS and the MATLAB lab's
 Python validator have tooling coverage, not a Python numerical coverage claim;
 MATLAB and Simulink retain their separate execution gate.
 
-The checked-in `.semgrepignore` replaces Semgrep's implicit test exclusions and
+The checked-in `.semgrepignore` preserves the explicit test-inclusive scanner scope and
 only excludes installed dependencies, caches and generated scanner artifacts.
 The scanner disables the target-size limit, runs one worker and permits 180
 seconds per rule/file. A timeout remains a failure under `--strict`; it is never
@@ -95,21 +95,62 @@ scope. The registry pack is live, while the CLI and local twelve-rule policy are
 pinned in this change. An audit-pattern match needs source review before being
 called a confirmed exploitable vulnerability.
 
-## Recorded scanner dependency blocker
+## Scanner dependency remediation
 
-The 2026-11-04 pip-audit run reports five advisories in the Semgrep tool's locked
-`mcp==1.29.0` and `opentelemetry-api==1.37.0` dependencies. The checked latest
-Semgrep release, 1.183.0, still requires these vulnerable ranges. The patched
-combination cannot satisfy its published dependency constraints. Details and
-primary metadata URLs are in `known-scanner-findings.json`. These are development
-tool dependencies; application dependency declarations are separate audit targets.
-The dependency gate remains failed. No advisory is ignored, no package constraint
-is overridden, and this configuration does not claim a clean security release.
+The historical Semgrep 1.183.0 distribution requires vulnerable MCP and
+OpenTelemetry versions. Its incompatible patched constraints and all five
+advisories remain in `known-scanner-findings.json`; that file is not an allowlist.
+The scanner now uses the complete OpenGrep 1.33.1 upstream Python CLI and native
+engine, built from commit `092c80faa0817840228349f93eff12a50fb9cf6b`. The supported
+upstream build targets and all declared Python dependency ranges are preserved.
+The Python environment has a complete 47-package hash lock and is checked with
+strict pip-audit, including its pip/setuptools/wheel build tools. CMake's separate
+build lock is also audited. Existing Semgrep environments are rejected so their
+old packages cannot remain hidden in a reused environment.
 
+`native-scanner.json` records 54 SHA-256-verified source/tool/library assets.
+`native-switch.export` freezes all 182 installed opam packages, archive checksums,
+and both upstream Git pins. Import uses a local empty repository rather than a
+floating package index. The original hmap archive is fetched through HTTPS with
+its original strong checksum preserved. GMP/libev are extracted into a private
+prefix from pinned Ubuntu packages; every opam system-library probe still runs.
+The build retains its JIT and all supported parser targets.
+
+The official OpenGrep native release embeds OCaml 5.5.1, so this build uses patched
+OCaml 5.5.2. PCRE2 10.49 is still flagged by the current advisory database; the build
+uses accepted upstream commit `ee7b43963d9a6a95c1745fa8ff1b56625d7b1dc3`, whose
+source version is **10.50~DEV**, and runs all four upstream PCRE2 test suites.
+This is an explicitly pinned development source revision, not a released PCRE2
+tarball. No advisory is ignored to accept either older native component.
+
+The native audit queries every locked opam package, source commit, vendored
+libyaml revision, tool and bundled Ubuntu library: 234 distinct component queries.
+Every returned advisory blocks, including build dependencies. Missing, malformed,
+partial or paginated results fail. The gate independently verifies that the saved
+report matches the exact locked query scope, even if a subprocess exits zero.
+The Ubuntu runner supplies its standard C/C++ runtime; these are not bundled into
+the scanner artifact. Database coverage is not proof that no unknown vulnerability
+exists in a component.
+
+Only `sast` or `all` builds the native engine. Other security matrix jobs audit
+its lock without compiling it. A completed source build produces a verified local
+wheel plus the three native libraries, with input/output digests. The wheel is
+labelled for the actual Linux platform and used only on Ubuntu 24.04 x86_64.
+Cached bytes are verified and the full native advisory audit runs again on every
+reuse. The registry pack, all twelve local rules, source targets, strict failures,
+severity policies, report completeness checks and source-drift protection remain
+unchanged. JSON output retains the existing `semgrep.json` artifact name for the
+shared validator. Only the obsolete metrics CLI option is removed.
+
+Local positive/negative controls exercised all twelve local rules and the live
+225-rule registry pack: every baseline detection was retained, unsafe inputs
+failed, safe inputs passed, malformed YAML failed, and omitted authored sources
+were rejected by the independent target validator. Hosted same-head checks still
+must pass before merging the candidate.
 
 ## Continuation scan integrity and narrow reviews
 
-Semgrep additionally checks its JSON analysis report: missing errors/results/target
+The SAST gate additionally checks its JSON analysis report: missing errors/results/target
 fields, nonempty errors, an empty analyzed scope, or any authored Python/JavaScript/
 TypeScript file absent from the analyzed target list fails the gate. The 180-second
 per-rule/file budget and 30-minute process budget allow large checked-in bundles to
@@ -117,7 +158,7 @@ finish, with a 4096 MB per-worker budget; reaching any limit remains a failure. 
 mode receipt bind the command to the scanned candidate. A source change during a
 scan invalidates that receipt and requires a new run.
 
-The only new Semgrep annotations are attached to two reviewed scanner-helper
+The two previously reviewed Semgrep-compatible annotations are attached to two reviewed scanner-helper
 operations, with full rule IDs. The standard-library XML import is paired with
 handlers that reject DTDs and internal/external entities before expansion; the
 bootstrap download requires HTTPS and checks the exact release SHA-256 before
@@ -138,3 +179,31 @@ dry-run report can omit those required build packages as already satisfied. The
 flag includes them in resolution while preserving declared version constraints.
 It is scoped to the scanner process and does not change the application runtime
 or the parent environment. Empty audited-package reports still fail independently.
+
+### Build time and cache policy
+
+Only the `sast` mode (or an explicit local `all` invocation) builds the native
+scanner. The other security matrix jobs retain their 40-minute limits. The SAST
+limit is 90 minutes: completed local source-build phases plus the full Power SAST
+scan total about 68.7 minutes, with about 21.3 minutes (31%) of explicit margin.
+`native-build-timings.json` records the individual measurements, initial failures
+and their corrections. These are local staged measurements, not GitHub Actions
+usage or a claim that the full cold hosted job has passed. Its first same-head
+execution is required before merge.
+
+The cache stores only the built wheel, pinned shared libraries and their receipts.
+Its exact key includes Ubuntu 24.04, runner architecture and all seven source,
+builder and lock inputs; there are no broad restore keys. Every reuse verifies
+input identity and every output hash, rejects extra or altered files, reruns the
+complete native vulnerability audit, and installs the wheel without dependency
+resolution. A fresh environment with an existing verified cache took 136.33
+seconds locally and created no native build directory. Cache upload follows a
+successful bootstrap, so app findings cannot force another compiler build.
+
+The frozen opam switch retains all package metadata and required strong checksums.
+Its two development dependencies use byte-for-byte equivalent archives of their
+original full commits, now with SHA256. The official content-addressed opam archive
+mirror supplies the same checksum-verified archives, with the original upstream
+URLs as fallback; it never supplies a replacement version. Native HTTPS downloads
+retry transient network failures at most three times and still fail after bounded
+exhaustion, TLS failure or a checksum mismatch.

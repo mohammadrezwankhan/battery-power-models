@@ -1,10 +1,10 @@
 {
-  "reviewed_on": "2026-11-04",
+  "reviewed_on": "2026-11-05",
   "binary_verification": "Downloaded bytes matched official release checksum entries; not a claim of independent signature verification",
   "python_tools": {
-    "semgrep": "1.183.0",
     "zizmor": "1.31.1",
-    "pip-audit": "2.10.1"
+    "pip-audit": "2.10.1",
+    "opengrep": "1.33.1 (complete Python CLI built from pinned upstream source)"
   },
   "sources": [
     "https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1",
@@ -18,7 +18,14 @@
     "https://semgrep.dev/p/security-audit",
     "https://pypi.org/pypi/semgrep/1.183.0/json",
     "https://pypi.org/pypi/zizmor/1.31.1/json",
-    "https://pypi.org/pypi/pip-audit/2.10.1/json"
+    "https://pypi.org/pypi/pip-audit/2.10.1/json",
+    "https://github.com/opengrep/opengrep/tree/092c80faa0817840228349f93eff12a50fb9cf6b",
+    "https://github.com/ocaml/ocaml/releases/tag/5.5.2",
+    "https://github.com/ocaml/opam/releases/tag/2.5.2",
+    "https://github.com/PCRE2Project/pcre2/commit/ee7b43963d9a6a95c1745fa8ff1b56625d7b1dc3",
+    "https://google.github.io/osv.dev/api/",
+    "https://github.com/actions/cache/releases/tag/v6.1.0",
+    "https://opam.ocaml.org/doc/Manual.html#config"
   ],
   "new_actions": {
     "step-security/harden-runner": {
@@ -28,6 +35,10 @@
     "github/codeql-action": {
       "version": "v4.39.1",
       "sha": "9b3254085494b55a0f7c4c2b3d2d52cc712ce370"
+    },
+    "actions/cache": {
+      "version": "v6.1.0",
+      "sha": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9"
     }
   },
   "cooldown": {
@@ -39,5 +50,23 @@
     "CodeQL availability and upload authorization",
     "MATLAB execution on runners where configured",
     "SonarQube Cloud project provisioning and quality gate"
-  ]
+  ],
+  "native_scanner": {
+    "manifest": "native-scanner.json",
+    "switch_lock": "native-switch.export",
+    "source_commit": "092c80faa0817840228349f93eff12a50fb9cf6b",
+    "ocaml": "5.5.2",
+    "opam": "2.5.2",
+    "pcre2_commit": "ee7b43963d9a6a95c1745fa8ff1b56625d7b1dc3",
+    "pcre2_source_version": "10.50~DEV (accepted upstream development commit, not a released tarball)",
+    "python_packages": 47,
+    "native_opam_packages": 182,
+    "native_audit_queries": 234,
+    "audit_policy": "Every returned advisory, missing result or unfinished response fails; no ignored IDs or dependency overrides",
+    "platform": "Ubuntu 24.04 x86_64, Python 3.12",
+    "cache_policy": "Verified wheel and native libraries only, bound to source/build locks and builder code; fresh dependency audit on reuse",
+    "bundled_runtime": "GMP, libev and tree-sitter are pinned Ubuntu/source inputs; the runner supplies its Ubuntu C/C++ runtime",
+    "timeout_evidence": "native-build-timings.json: measured local phases and explicit margin; actual hosted cold run still required",
+    "opam_sources": "Full switch metadata, mandatory SHA256/SHA512 verification, official content-addressed mirror and upstream fallback; both dev commits use byte-equivalent SHA256 archives"
+  }
 }

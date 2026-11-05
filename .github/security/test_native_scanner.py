@@ -1,0 +1,190 @@
+"""Reject incomplete native scanner audits and untrusted cached build inputs."""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+import subprocess
+import sys
+import tarfile
+import tempfile
+import unittest
+from pathlib import Path
+
+import native_scanner
+
+
+def archive_bytes(name: str, *, link: str | None = None) -> bytes:
+    """Create one controlled source member for the extraction boundary."""
+    stream = io.BytesIO()
+    with tarfile.open(fileobj=stream, mode="w:gz") as archive:
+        member = tarfile.TarInfo(name)
+        if link is not None:
+            member.type = tarfile.SYMTYPE
+            member.linkname = link
+            archive.addfile(member)
+        else:
+            content = b"source\n"
+            member.size = len(content)
+            archive.addfile(member, io.BytesIO(content))
+    return stream.getvalue()
+
+
+class SourceIntegrityTests(unittest.TestCase):
+    """No downloaded bytes may escape their verified source directory."""
+
+    def test_tampered_source_is_rejected(self) -> None:
+        """Changing downloaded bytes must fail before extraction or execution."""
+        with self.assertRaises(RuntimeError):
+            native_scanner.verify_blob(b"tampered", "0" * 64)
+
+    def test_matching_source_digest_is_accepted(self) -> None:
+        """The published digest permits the exact corresponding source bytes."""
+        native_scanner.verify_blob(
+            b"source\n",
+            "b8bb034f9b63bd0254fbc7c157cae746c75853f4643d6cea844dc48ddb57f522",
+        )
+
+    def test_source_root_is_removed_without_losing_files(self) -> None:
+        """A Git source archive installs its contents at the requested root."""
+        with tempfile.TemporaryDirectory() as temporary:
+            destination = Path(temporary) / "source"
+            native_scanner.extract_source(
+                archive_bytes("project/src/main.c"), destination
+            )
+            self.assertEqual((destination / "src/main.c").read_bytes(), b"source\n")
+
+    def test_traversal_and_escaping_links_are_rejected(self) -> None:
+        """An archive cannot write outside the assigned source root."""
+        cases = [
+            archive_bytes("project/../../outside"),
+            archive_bytes("/outside"),
+            archive_bytes("project/escape", link="../../outside"),
+        ]
+        for blob in cases:
+            with (
+                self.subTest(blob=hashlib.sha256(blob).hexdigest()),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                destination = Path(temporary) / "source"
+                with self.assertRaises((ValueError, tarfile.TarError)):
+                    native_scanner.extract_source(blob, destination)
+                self.assertFalse((Path(temporary) / "outside").exists())
+
+
+class AuditCompletenessTests(unittest.TestCase):
+    """Every locked component needs an explicit complete vulnerability result."""
+
+    def test_completed_clean_batch_is_accepted(self) -> None:
+        """A complete response with no findings is a successful audit."""
+        self.assertEqual(native_scanner.inspect_osv({"results": [{}, {}]}, 2), [])
+
+    def test_findings_are_preserved(self) -> None:
+        """A finding must reach the caller and fail the security gate."""
+        self.assertEqual(
+            native_scanner.inspect_osv(
+                {
+                    "results": [
+                        {
+                            "vulns": [
+                                {"id": "TEST-1", "modified": "2026-11-05T00:00:00Z"}
+                            ]
+                        }
+                    ]
+                },
+                1,
+            ),
+            [{"query_index": 0, "id": "TEST-1", "modified": "2026-11-05T00:00:00Z"}],
+        )
+
+    def test_missing_partial_empty_and_paginated_results_are_rejected(self) -> None:
+        """Absent or incomplete OSV data must never look like a clean audit."""
+        cases = [
+            ({}, 1),
+            ({"results": []}, 1),
+            ({"results": [{}]}, 2),
+            ({"results": []}, 0),
+            ({"results": [{"next_page_token": "remaining"}]}, 1),
+            ({"results": [{"vulns": {}}]}, 1),
+            ({"results": [{"vulns": [{}]}]}, 1),
+        ]
+        for report, count in cases:
+            with (
+                self.subTest(report=report, count=count),
+                self.assertRaises(ValueError),
+            ):
+                native_scanner.inspect_osv(report, count)
+
+    def test_changed_or_omitted_installed_dependency_is_rejected(self) -> None:
+        """An installed switch must exactly match the audited frozen inventory."""
+        expected = {"ocaml": "5.5.2", "yaml": "3.2.0"}
+        for actual in ({"ocaml": "5.5.2"}, {"ocaml": "5.5.1", "yaml": "3.2.0"}):
+            with self.subTest(actual=actual), self.assertRaises(ValueError):
+                native_scanner.validate_inventory(expected, actual)
+
+    def test_saved_audit_with_missing_locked_components_is_rejected(self) -> None:
+        """A zero-exit process cannot certify an omitted or different dependency."""
+        expected = [{"commit": "1" * 40}, {"commit": "2" * 40}]
+        report = {"status": "passed", "queries": expected[:1], "results": [{}]}
+        with self.assertRaises(ValueError):
+            native_scanner.inspect_audit_report(report, expected)
+
+    def test_saved_audit_cannot_hide_advisories_behind_passed_status(self) -> None:
+        """The gate independently counts raw results even after exit zero."""
+        expected = [{"commit": "1" * 40}]
+        report = {
+            "status": "passed",
+            "queries": expected,
+            "results": [{"vulns": [{"id": "TEST-1"}]}],
+        }
+        result = native_scanner.inspect_audit_report(report, expected)
+        self.assertEqual(result["blocking_findings"], 1)
+
+
+class CachedBuildIntegrityTests(unittest.TestCase):
+    """Restored builds must match their locked inputs and recorded output bytes."""
+
+    def test_modified_cached_executable_is_rejected(self) -> None:
+        """A cache hit cannot authorize changed scanner bytes."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "opengrep-core").write_bytes(b"changed")
+            receipt = {
+                "input_sha256": "locked-inputs",
+                "files": {"opengrep-core": hashlib.sha256(b"original").hexdigest()},
+            }
+            (root / "receipt.json").write_text(json.dumps(receipt))
+            with self.assertRaises(RuntimeError):
+                native_scanner.verify_cache(root, "locked-inputs")
+
+    def test_missing_cache_requests_a_build(self) -> None:
+        """An absent receipt must result in a source build rather than success."""
+        with tempfile.TemporaryDirectory() as temporary:
+            self.assertFalse(
+                native_scanner.verify_cache(Path(temporary), "locked-inputs")
+            )
+
+
+class BuildFailureEvidenceTests(unittest.TestCase):
+    """Failed external build steps must retain a truthful terminal receipt."""
+
+    def test_timed_out_build_is_recorded_as_failed(self) -> None:
+        """A killed build cannot leave a running or successful phase receipt."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            builder = native_scanner.Builder(root, root / "logs", {})
+            builder.work.mkdir()
+            with self.assertRaises(subprocess.TimeoutExpired):
+                builder.command(
+                    "timeout-fixture",
+                    [sys.executable, "-c", "import time; time.sleep(5)"],
+                    timeout=1,
+                )
+            report = json.loads((root / "logs/native-build-stages.json").read_text())
+            self.assertEqual(report[0]["status"], "failed")
+            self.assertIn("TimeoutExpired", report[0]["error"])
+
+
+if __name__ == "__main__":
+    unittest.main()
