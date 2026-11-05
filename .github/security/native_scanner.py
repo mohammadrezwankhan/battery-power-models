@@ -104,6 +104,29 @@ def validate_inventory(expected: dict[str, str], actual: dict[str, str]) -> None
         raise ValueError("Installed native dependencies differ from the frozen lock")
 
 
+def verified_sandbox_helper(work: Path, manifest: dict[str, Any], search_path: str) -> Path:
+    """Require the locked helper instead of falling back to an unpinned host tool."""
+    assets = [item for item in manifest["assets"] if item["name"] == "bubblewrap"]
+    if len(assets) != 1:
+        raise ValueError("Native source lock must identify exactly one bubblewrap package")
+    helper = work / "sysroot/usr/bin/bwrap"
+    if helper.is_symlink() or not helper.is_file() or not os.access(helper, os.X_OK):
+        raise RuntimeError("The verified bubblewrap helper is missing or not executable")
+    verify_blob(helper.read_bytes(), assets[0]["executable_sha256"])
+    if shutil.which("bwrap", path=search_path) != str(helper):
+        raise RuntimeError("The opam sandbox would use an unverified bubblewrap helper")
+    return helper
+
+
+def require_sandbox_hook(value: str, phase: str) -> None:
+    """Reject an init result that disables or changes the pinned opam sandbox."""
+    if phase not in {"build", "install", "remove"}:
+        raise ValueError("Unknown opam sandbox phase")
+    expected = f'["%{{hooks}}%/sandbox.sh" "{phase}"] {{os = "linux" | os = "macos"}}'
+    if " ".join(value.split()) != expected:
+        raise RuntimeError(f"The opam {phase} sandbox hook is absent or changed")
+
+
 def inspect_audit_report(
     report: object, queries: list[dict[str, Any]]
 ) -> dict[str, int]:
@@ -490,13 +513,17 @@ class Builder:
             cwd=tree,
         )
 
-    def compiler(self) -> None:
-        """Import the full frozen switch from an empty local package repository."""
+    def initialize_compiler(self) -> None:
+        """Require a working sandbox before importing or compiling any package."""
+        helper = verified_sandbox_helper(self.work, self.manifest, self.environment["PATH"])
+        linked = self.command("sandbox-helper-libraries", ["ldd", str(helper)])
+        if "not found" in linked:
+            raise RuntimeError("The bubblewrap helper requires unavailable runtime libraries")
+        self.command("sandbox-helper-version", [str(helper), "--version"])
         repository = self.work / "empty-repository"
         repository.mkdir()
         (repository / "repo").write_text(
-            'opam-version: "2.0"\n'
-            'archive-mirrors: ["https://opam.ocaml.org/cache"]\n'
+            'opam-version: "2.0"\narchive-mirrors: ["https://opam.ocaml.org/cache"]\n'
         )
         opam = str(self.work / "tools/opam")
         self.command(
@@ -507,11 +534,34 @@ class Builder:
                 "--bare",
                 "--no-setup",
                 "--no-opamrc",
-                "--yes",
+                # A yes response would silently disable a failing sandbox.
+                "--no",
                 "locked",
                 str(repository),
             ],
         )
+        for phase in ("build", "install", "remove"):
+            configured = self.command(
+                f"opam-sandbox-{phase}-configuration",
+                [opam, "option", "--global", f"wrap-{phase}-commands"],
+            )
+            require_sandbox_hook(configured, phase)
+        self.environment["OPAM_SWITCH_PREFIX"] = str(self.work / "opam-root/scanner")
+        # Opam init can exit zero even after its namespace probe failed. Run its
+        # actual build hook and require success; never disable sandboxing.
+        self.command(
+            "opam-sandbox-check",
+            [
+                str(self.work / "opam-root/opam-init/hooks/sandbox.sh"),
+                "build",
+                "/usr/bin/true",
+            ],
+        )
+
+    def compiler(self) -> None:
+        """Import the full frozen switch from an empty local package repository."""
+        self.initialize_compiler()
+        opam = str(self.work / "tools/opam")
         self.command(
             "opam-frozen-import",
             [

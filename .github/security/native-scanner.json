@@ -773,6 +773,28 @@
         },
         "version": "1:4.33-2.1build1"
       }
+    },
+    {
+      "name": "bubblewrap",
+      "kind": "deb",
+      "destination": "sysroot",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/b/bubblewrap/bubblewrap_0.12.0-1_amd64.deb",
+      "sha256": "db4d572a7927bfd34cc9b8e24b56983efa8e0483d03da6c810f6caae081dcc36",
+      "executable_sha256": "5d1f77a455d3a5cc1a45bdbf2e23b89cbd7b33e640dd9ae3b5ce2573d133889e",
+      "audit": {
+        "package": {
+          "ecosystem": "Ubuntu:26.10",
+          "name": "bubblewrap"
+        },
+        "version": "0.12.0-1"
+      },
+      "runtime_requirements": {
+        "libc6": ">=2.38",
+        "libcap2": ">=1:2.10",
+        "libselinux1": ">=3.1~"
+      },
+      "published_sha512": "f4e2c7e8944e22ea0d49ad88fdba695a78dd5793524fdbf8cccdf8f0984c0b3e13c27812e92664d2f0a71cd09c4121e470468c962da1c644e9566e2082aaae6a",
+      "distribution_signature_key": "F6ECB3762474EDA9D21B7022871920D1991BC93C"
     }
   ],
   "components": {
@@ -811,6 +833,12 @@
           "name": "opam"
         },
         "version": "2.5.2"
+      }
+    },
+    {
+      "name": "bubblewrap 0.12.0 upstream source",
+      "query": {
+        "commit": "2a76602a8c71f36c1527cf9fc3417d9149822e0c"
       }
     }
   ]

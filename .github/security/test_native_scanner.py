@@ -142,6 +142,62 @@ class AuditCompletenessTests(unittest.TestCase):
         self.assertEqual(result["blocking_findings"], 1)
 
 
+class SandboxIntegrityTests(unittest.TestCase):
+    """An absent helper or disabled opam wrapper must never authorize a build."""
+
+    def test_verified_helper_is_required_even_when_host_bwrap_exists(self) -> None:
+        """A system executable cannot conceal a missing locked build input."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            host = root / "host"
+            host.mkdir()
+            (host / "bwrap").write_text("#!/bin/sh\nexit 0\n")
+            (host / "bwrap").chmod(0o755)
+            manifest = {"assets": [{"name": "bubblewrap", "executable_sha256": "0" * 64}]}
+            with self.assertRaises(RuntimeError):
+                native_scanner.verified_sandbox_helper(root, manifest, str(host))
+
+    def test_changed_or_shadowed_helper_is_rejected(self) -> None:
+        """Only the exact extracted executable at the selected path is trusted."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            helper = root / "sysroot/usr/bin/bwrap"
+            helper.parent.mkdir(parents=True)
+            original = b"#!/bin/sh\nexit 0\n"
+            helper.write_bytes(original)
+            helper.chmod(0o755)
+            manifest = {
+                "assets": [
+                    {
+                        "name": "bubblewrap",
+                        "executable_sha256": hashlib.sha256(original).hexdigest(),
+                    }
+                ]
+            }
+            self.assertEqual(
+                native_scanner.verified_sandbox_helper(root, manifest, str(helper.parent)),
+                helper,
+            )
+            host = root / "host"
+            host.mkdir()
+            (host / "bwrap").write_bytes(original)
+            (host / "bwrap").chmod(0o755)
+            with self.assertRaises(RuntimeError):
+                native_scanner.verified_sandbox_helper(root, manifest, f"{host}:{helper.parent}")
+            helper.write_bytes(b"#!/bin/sh\nexit 1\n")
+            with self.assertRaises(RuntimeError):
+                native_scanner.verified_sandbox_helper(root, manifest, str(helper.parent))
+
+    def test_only_the_enabled_upstream_sandbox_hooks_are_accepted(self) -> None:
+        """An init success with empty or altered wrappers remains a failure."""
+        for phase in ("build", "install", "remove"):
+            expected = f'["%{{hooks}}%/sandbox.sh" "{phase}"] {{os = "linux" | os = "macos"}}'
+            native_scanner.require_sandbox_hook(expected + "\n", phase)
+            for value in ("", "[]", expected + " []", expected.replace("linux", "unknown")):
+                with self.subTest(phase=phase, value=value), self.assertRaises(RuntimeError):
+                    native_scanner.require_sandbox_hook(value, phase)
+
+
 class CachedBuildIntegrityTests(unittest.TestCase):
     """Restored builds must match their locked inputs and recorded output bytes."""
 

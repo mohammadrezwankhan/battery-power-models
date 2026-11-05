@@ -108,7 +108,7 @@ strict pip-audit, including its pip/setuptools/wheel build tools. CMake's separa
 build lock is also audited. Existing Semgrep environments are rejected so their
 old packages cannot remain hidden in a reused environment.
 
-`native-scanner.json` records 54 SHA-256-verified source/tool/library assets.
+`native-scanner.json` records 55 SHA-256-verified source/tool/library assets.
 `native-switch.export` freezes all 182 installed opam packages, archive checksums,
 and both upstream Git pins. Import uses a local empty repository rather than a
 floating package index. The original hmap archive is fetched through HTTPS with
@@ -124,7 +124,7 @@ This is an explicitly pinned development source revision, not a released PCRE2
 tarball. No advisory is ignored to accept either older native component.
 
 The native audit queries every locked opam package, source commit, vendored
-libyaml revision, tool and bundled Ubuntu library: 234 distinct component queries.
+libyaml revision, tool and bundled Ubuntu library: 236 distinct component queries.
 Every returned advisory blocks, including build dependencies. Missing, malformed,
 partial or paginated results fail. The gate independently verifies that the saved
 report matches the exact locked query scope, even if a subprocess exits zero.
@@ -207,3 +207,34 @@ mirror supplies the same checksum-verified archives, with the original upstream
 URLs as fallback; it never supplies a replacement version. Native HTTPS downloads
 retry transient network failures at most three times and still fail after bounded
 exhaustion, TLS failure or a checksum mismatch.
+
+### Native sandbox prerequisite
+
+The Battery Power pilot's first hosted cold build at
+`5efafb219c145f60f04948b7702f034a1e589301` failed at opam initialization because
+`bwrap` was absent from the runner. The
+current Ubuntu 24.04 package `0.9.0-1ubuntu0.3` still has CVE-2026-87766: Ubuntu
+reverted its initial fix because of a regression. The native audit rejected it;
+no advisory was ignored.
+
+The lock instead includes Ubuntu 26.10's patched `bubblewrap` package `0.12.0-1`,
+extracted privately without installing another distribution or running package
+scripts. Its declared minima (libc6 2.38, libcap2 2.10 and libselinux1 3.1) are
+satisfied by the Ubuntu 24.04 runner. The package and extracted executable have
+separate SHA-256 checks, and the exact Ubuntu 26.10 identity and upstream source
+commit are both included in the native audit. Ubuntu's archive signature and its
+SHA-512 index and package checksums were verified before deriving the locked
+SHA-256; the published SHA-512 and signing-key identity are retained in the lock.
+Actual library resolution and version execution are recorded before use. The helper uses the runner's libc,
+libcap and SELinux runtime, including libselinux's PCRE2 dependency. No AppArmor
+policy or kernel setting is changed.
+
+Opam's `--yes` can accept disabling sandboxing after a failed namespace probe.
+Initialization now answers `--no`, independently verifies the exact upstream
+build/install/remove wrappers, and executes the upstream build sandbox before
+importing the compiler or dependency switch. Missing, altered, shadowed or
+nonworking helpers fail the build. A constrained local container reproduced
+the original silent fallback; the corrected initialization retains its wrappers
+and fails on the actual sandbox operation. Successful sandbox execution and the
+complete cold source build still require the hosted run; local source-build
+timings do not establish that result.
