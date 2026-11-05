@@ -76,16 +76,26 @@ jobs:
         uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
         with:
           release: R2026a
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Capture current Python outputs against the immutable parity fixture
+        run: python scripts/capture_python_parity.py --output hardening-artifacts/python-parity.json
       - name: Run numerical validation
         uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3.3.0
         with:
           command: addpath('tools'); security_numerical_gate
+      - name: Verify Python outputs and source hashes after MATLAB execution
+        if: always()
+        run: python scripts/capture_python_parity.py --verify hardening-artifacts/python-parity.json
       - name: Preserve the mandatory MATLAB gate report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: matlab-numerical-${{ github.run_id }}-${{ github.run_attempt }}
-          path: hardening-artifacts/matlab-numerical-gate.json
+          path: |
+            hardening-artifacts/matlab-numerical-gate.json
+            hardening-artifacts/python-parity.json
           if-no-files-found: error
           retention-days: 14
 
