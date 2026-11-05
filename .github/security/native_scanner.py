@@ -12,6 +12,7 @@ import platform
 import posixpath
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -24,6 +25,8 @@ from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
 LOGGER = logging.getLogger(__name__)
+HOSTED_SANDBOX = Path("/opt/rezwan-native-sandbox/bin/bwrap")
+HOSTED_POLICY = Path("/etc/apparmor.d/rezwan-native-bwrap")
 
 
 def verify_blob(blob: bytes, expected: str) -> None:
@@ -104,18 +107,90 @@ def validate_inventory(expected: dict[str, str], actual: dict[str, str]) -> None
         raise ValueError("Installed native dependencies differ from the frozen lock")
 
 
-def verified_sandbox_helper(work: Path, manifest: dict[str, Any], search_path: str) -> Path:
+def verified_sandbox_helper(
+    work: Path,
+    manifest: dict[str, Any],
+    search_path: str,
+    *,
+    installed: bool = False,
+) -> Path:
     """Require the locked helper instead of falling back to an unpinned host tool."""
     assets = [item for item in manifest["assets"] if item["name"] == "bubblewrap"]
     if len(assets) != 1:
         raise ValueError("Native source lock must identify exactly one bubblewrap package")
-    helper = work / "sysroot/usr/bin/bwrap"
+    helper = HOSTED_SANDBOX if installed else work / "sysroot/usr/bin/bwrap"
+    if installed:
+        require_root_owned_path(helper)
+        if stat.S_IMODE(helper.stat().st_mode) != 0o555:
+            raise RuntimeError("The installed sandbox helper has unexpected permissions")
     if helper.is_symlink() or not helper.is_file() or not os.access(helper, os.X_OK):
         raise RuntimeError("The verified bubblewrap helper is missing or not executable")
     verify_blob(helper.read_bytes(), assets[0]["executable_sha256"])
     if shutil.which("bwrap", path=search_path) != str(helper):
         raise RuntimeError("The opam sandbox would use an unverified bubblewrap helper")
     return helper
+
+
+def require_root_owned_path(path: Path) -> None:
+    """Reject links and any path component writable by a non-root identity."""
+    for node in (path, *path.parents):
+        metadata = node.lstat()
+        if (
+            stat.S_ISLNK(metadata.st_mode)
+            or metadata.st_uid != 0
+            or metadata.st_gid != 0
+            or metadata.st_mode & 0o6022
+        ):
+            raise RuntimeError(f"Sandbox system path is not protected: {node}")
+
+
+def sandbox_profile(blob: bytes, expected: str) -> str:
+    """Narrow Ubuntu's locked policy to one helper and preserve child denial."""
+    verify_blob(blob, expected)
+    value = blob.decode()
+    replacements = {
+        "profile bwrap /usr/bin/bwrap flags=": (
+            f"profile rezwan-native-bwrap {HOSTED_SANDBOX} flags="
+        ),
+        "profile unpriv_bwrap flags=": "profile rezwan-native-unpriv-bwrap flags=",
+        "  allow capability,": (
+            "  allow capability sys_admin sys_chroot net_admin "
+            "setuid setgid sys_ptrace,"
+        ),
+        "  allow px /** -> bwrap//&unpriv_bwrap,": (
+            "  allow px /** -> rezwan-native-bwrap//&rezwan-native-unpriv-bwrap,"
+        ),
+        "  allow pix /** -> &unpriv_bwrap,": (
+            "  allow pix /** -> &rezwan-native-unpriv-bwrap,"
+        ),
+        "  include if exists <local/bwrap-userns-restrict>": (
+            "  # Dedicated helper policy has no site-specific capability overrides."
+        ),
+        "  include if exists <local/unpriv_bwrap>": (
+            "  # Child capability denial cannot be overridden through local includes."
+        ),
+    }
+    if value.count("  audit deny capability,") != 1:
+        raise ValueError("Ubuntu sandbox policy is missing its child capability denial")
+    for original, replacement in replacements.items():
+        if value.count(original) != 1:
+            raise ValueError("Ubuntu sandbox policy has an unexpected structure")
+        value = value.replace(original, replacement)
+    return value
+
+
+def require_sandbox_profile(value: str) -> None:
+    """Require the actual child process to use both enforcing policy layers."""
+    expected = "rezwan-native-bwrap//&rezwan-native-unpriv-bwrap (enforce)"
+    lines = value.splitlines()
+    if not lines or lines[0] != expected:
+        raise RuntimeError("The sandbox child is missing its enforcing capability policy")
+    fields = dict(line.split(":", 1) for line in lines[1:] if ":" in line)
+    for name in ("CapEff", "CapPrm"):
+        if fields.get(name, "").strip() != "0000000000000000":
+            raise RuntimeError("The sandbox child retained capabilities")
+    if fields.get("NoNewPrivs", "").strip() != "1":
+        raise RuntimeError("The sandbox child can acquire new privileges")
 
 
 def require_sandbox_hook(value: str, phase: str) -> None:
@@ -513,9 +588,91 @@ class Builder:
             cwd=tree,
         )
 
+    def configure_hosted_sandbox(self, helper: Path) -> bool:
+        """Enable only the verified helper on a GitHub-hosted Ubuntu 24.04 VM."""
+        if (
+            self.environment.get("GITHUB_ACTIONS") != "true"
+            or self.environment.get("RUNNER_ENVIRONMENT") != "github-hosted"
+        ):
+            return False
+        release = platform.freedesktop_os_release()
+        if release.get("ID") != "ubuntu" or release.get("VERSION_ID") != "24.04":
+            raise RuntimeError("Hosted sandbox setup requires the qualified Ubuntu runner")
+        assets = [
+            item for item in self.manifest["assets"]
+            if item["name"] == "apparmor-profiles"
+        ]
+        if len(assets) != 1:
+            raise ValueError("The source lock must identify one Ubuntu sandbox policy")
+        source = self.work / (
+            "sysroot/usr/share/apparmor/extra-profiles/bwrap-userns-restrict"
+        )
+        if source.is_symlink() or not source.is_file():
+            raise RuntimeError("The verified Ubuntu sandbox policy is missing")
+        policy = sandbox_profile(source.read_bytes(), assets[0]["profile_sha256"])
+        prepared = self.work / "rezwan-native-bwrap.profile"
+        prepared.write_text(policy)
+        parser = Path("/usr/sbin/apparmor_parser")
+        require_root_owned_path(parser)
+        require_root_owned_path(HOSTED_POLICY.parent)
+        for node in (HOSTED_SANDBOX, *HOSTED_SANDBOX.parents, HOSTED_POLICY):
+            if node.exists() or node.is_symlink():
+                require_root_owned_path(node)
+        if HOSTED_POLICY.exists() and HOSTED_POLICY.read_text() != policy:
+            raise RuntimeError("Refusing to replace an unrelated sandbox policy")
+        self.command(
+            "sandbox-helper-directory",
+            [
+                "/usr/bin/sudo", "-n", "/usr/bin/install", "-d",
+                "--owner=root", "--group=root", "--mode=0755", "--",
+                str(HOSTED_SANDBOX.parent),
+            ],
+        )
+        require_root_owned_path(HOSTED_SANDBOX.parent)
+        self.command(
+            "sandbox-helper-install",
+            [
+                "/usr/bin/sudo", "-n", "/usr/bin/install",
+                "--owner=root", "--group=root", "--mode=0555", "--",
+                str(helper), str(HOSTED_SANDBOX),
+            ],
+        )
+        self.command(
+            "sandbox-policy-install",
+            [
+                "/usr/bin/sudo", "-n", "/usr/bin/install",
+                "--owner=root", "--group=root", "--mode=0444", "--",
+                str(prepared), str(HOSTED_POLICY),
+            ],
+        )
+        require_root_owned_path(HOSTED_POLICY)
+        verify_blob(
+            HOSTED_POLICY.read_bytes(), hashlib.sha256(policy.encode()).hexdigest()
+        )
+        self.environment["PATH"] = (
+            f"{HOSTED_SANDBOX.parent}:" + self.environment["PATH"]
+        )
+        verified_sandbox_helper(
+            self.work, self.manifest, self.environment["PATH"], installed=True
+        )
+        self.command("sandbox-policy-parser-version", [str(parser), "--version"])
+        self.command(
+            "sandbox-policy-load",
+            [
+                "/usr/bin/sudo", "-n", str(parser), "--replace", "--skip-cache",
+                str(HOSTED_POLICY),
+            ],
+        )
+        return True
+
     def initialize_compiler(self) -> None:
         """Require a working sandbox before importing or compiling any package."""
         helper = verified_sandbox_helper(self.work, self.manifest, self.environment["PATH"])
+        hosted_policy = self.configure_hosted_sandbox(helper)
+        if hosted_policy:
+            helper = verified_sandbox_helper(
+                self.work, self.manifest, self.environment["PATH"], installed=True
+            )
         linked = self.command("sandbox-helper-libraries", ["ldd", str(helper)])
         if "not found" in linked:
             raise RuntimeError("The bubblewrap helper requires unavailable runtime libraries")
@@ -557,6 +714,16 @@ class Builder:
                 "/usr/bin/true",
             ],
         )
+        if hosted_policy:
+            current = self.command(
+                "opam-sandbox-profile",
+                [
+                    str(self.work / "opam-root/opam-init/hooks/sandbox.sh"),
+                    "build", "/usr/bin/cat", "/proc/self/attr/current",
+                    "/proc/self/status",
+                ],
+            )
+            require_sandbox_profile(current)
 
     def compiler(self) -> None:
         """Import the full frozen switch from an empty local package repository."""

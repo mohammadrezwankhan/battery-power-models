@@ -108,7 +108,7 @@ strict pip-audit, including its pip/setuptools/wheel build tools. CMake's separa
 build lock is also audited. Existing Semgrep environments are rejected so their
 old packages cannot remain hidden in a reused environment.
 
-`native-scanner.json` records 55 SHA-256-verified source/tool/library assets.
+`native-scanner.json` records 56 SHA-256-verified source/tool/library assets.
 `native-switch.export` freezes all 182 installed opam packages, archive checksums,
 and both upstream Git pins. Import uses a local empty repository rather than a
 floating package index. The original hmap archive is fetched through HTTPS with
@@ -124,7 +124,7 @@ This is an explicitly pinned development source revision, not a released PCRE2
 tarball. No advisory is ignored to accept either older native component.
 
 The native audit queries every locked opam package, source commit, vendored
-libyaml revision, tool and bundled Ubuntu library: 236 distinct component queries.
+libyaml revision, tool and bundled Ubuntu library: 237 distinct component queries.
 Every returned advisory blocks, including build dependencies. Missing, malformed,
 partial or paginated results fail. The gate independently verifies that the saved
 report matches the exact locked query scope, even if a subprocess exits zero.
@@ -225,16 +225,41 @@ separate SHA-256 checks, and the exact Ubuntu 26.10 identity and upstream source
 commit are both included in the native audit. Ubuntu's archive signature and its
 SHA-512 index and package checksums were verified before deriving the locked
 SHA-256; the published SHA-512 and signing-key identity are retained in the lock.
-Actual library resolution and version execution are recorded before use. The helper uses the runner's libc,
-libcap and SELinux runtime, including libselinux's PCRE2 dependency. No AppArmor
-policy or kernel setting is changed.
+Actual library resolution and version execution are recorded before use. The
+helper uses the runner's libc, libcap and SELinux runtime, including libselinux's
+PCRE2 dependency.
+
+The next hosted run reached the actual sandbox and failed with `bwrap: loopback:
+Failed RTM_NEWADDR: Operation not permitted`. On a GitHub-hosted Ubuntu 24.04 VM
+only, the builder now copies the verified helper to the dedicated root-owned
+`/opt/rezwan-native-sandbox/bin/bwrap` path and loads a dedicated AppArmor policy.
+The policy comes from Ubuntu 24.04's hash-locked `apparmor-profiles`
+`4.0.1really4.0.1-0ubuntu0.24.04.9` package, which is separately audited by its
+source package identity. The package was verified against the signed Ubuntu
+archive index; its extracted policy has a separate SHA-256 check. No package
+scripts run. The runner supplies its existing AppArmor parser.
+
+The derived policy changes the helper attachment and paired profile names,
+limits its setup capabilities to the six required by the pinned Bubblewrap
+source (`sys_admin`, `sys_chroot`, `net_admin`, `setuid`, `setgid`, `sys_ptrace`),
+and removes optional local overrides. It retains Ubuntu's child profile stacking
+and unconditional child capability denial. The executable, policy and every
+parent directory must be root-owned, without symlinks or non-root write access;
+installed bytes are rechecked before use. The helper is mode `0555`, without
+setuid/setgid, and the policy is mode `0444`. System Bubblewrap, other AppArmor
+profiles, and global kernel restrictions remain untouched. Local containers and
+self-hosted runners receive no policy or system-path changes.
 
 Opam's `--yes` can accept disabling sandboxing after a failed namespace probe.
 Initialization now answers `--no`, independently verifies the exact upstream
 build/install/remove wrappers, and executes the upstream build sandbox before
-importing the compiler or dependency switch. Missing, altered, shadowed or
-nonworking helpers fail the build. A constrained local container reproduced
+importing the compiler or dependency switch. The hosted child must additionally
+report both enforcing AppArmor profiles, zero effective and permitted
+capabilities, and `NoNewPrivs=1`. Missing, altered, shadowed or nonworking helpers
+fail the build. A constrained local container reproduced
 the original silent fallback; the corrected initialization retains its wrappers
 and fails on the actual sandbox operation. Successful sandbox execution and the
 complete cold source build still require the hosted run; local source-build
-timings do not establish that result.
+timings do not establish that result. The derived policy compiled successfully
+with the real Ubuntu 4.0.1 parser without loading any local kernel policy; that
+syntax check also does not establish a successful hosted sandbox or cold build.

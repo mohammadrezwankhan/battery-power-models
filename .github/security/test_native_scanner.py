@@ -197,6 +197,57 @@ class SandboxIntegrityTests(unittest.TestCase):
                 with self.subTest(phase=phase, value=value), self.assertRaises(RuntimeError):
                     native_scanner.require_sandbox_hook(value, phase)
 
+    def test_tampered_sandbox_policy_is_rejected(self) -> None:
+        """Changed downloaded policy cannot authorize namespace capabilities."""
+        with self.assertRaises(RuntimeError):
+            native_scanner.sandbox_profile(b"changed policy", "0" * 64)
+
+    def test_incomplete_sandbox_policy_is_rejected(self) -> None:
+        """An unexpected policy cannot silently omit its child restrictions."""
+        policy = b"profile bwrap /usr/bin/bwrap { allow capability, }\n"
+        with self.assertRaises(ValueError):
+            native_scanner.sandbox_profile(
+                policy, hashlib.sha256(policy).hexdigest()
+            )
+
+    def test_writable_or_linked_helper_paths_are_rejected(self) -> None:
+        """Root-only bytes need protected ancestors and a regular path."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            root.chmod(0o777)
+            helper = root / "bwrap"
+            helper.write_bytes(b"verified helper")
+            helper.chmod(0o555)
+            with self.assertRaises(RuntimeError):
+                native_scanner.require_root_owned_path(helper)
+            link = root / "linked-helper"
+            link.symlink_to(helper)
+            with self.assertRaises(RuntimeError):
+                native_scanner.require_root_owned_path(link)
+
+    def test_sandbox_child_requires_the_enforced_capability_stripping_stack(self) -> None:
+        """A successful process alone cannot prove the intended policy applies."""
+        expected = "rezwan-native-bwrap//&rezwan-native-unpriv-bwrap (enforce)"
+        status = (
+            "\nCapEff:\t0000000000000000\nCapPrm:\t0000000000000000\n"
+            "NoNewPrivs:\t1\n"
+        )
+        native_scanner.require_sandbox_profile(expected + status)
+        for value in (
+            "unconfined",
+            "rezwan-native-bwrap (enforce)",
+            expected.replace("enforce", "complain"),
+        ):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                native_scanner.require_sandbox_profile(value + status)
+        for incorrect in (
+            "",
+            status.replace("NoNewPrivs:\t1", "NoNewPrivs:\t0"),
+            status.replace("0000000000000000", "0000000000000001"),
+        ):
+            with self.subTest(status=incorrect), self.assertRaises(RuntimeError):
+                native_scanner.require_sandbox_profile(expected + incorrect)
+
 
 class CachedBuildIntegrityTests(unittest.TestCase):
     """Restored builds must match their locked inputs and recorded output bytes."""

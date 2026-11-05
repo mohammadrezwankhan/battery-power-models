@@ -795,6 +795,21 @@
       },
       "published_sha512": "f4e2c7e8944e22ea0d49ad88fdba695a78dd5793524fdbf8cccdf8f0984c0b3e13c27812e92664d2f0a71cd09c4121e470468c962da1c644e9566e2082aaae6a",
       "distribution_signature_key": "F6ECB3762474EDA9D21B7022871920D1991BC93C"
+    },
+    {
+      "name": "apparmor-profiles",
+      "kind": "deb",
+      "destination": "sysroot",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/apparmor/apparmor-profiles_4.0.1really4.0.1-0ubuntu0.24.04.9_all.deb",
+      "sha256": "90b02aa006eea7702cd4e851343e469e41365dda42145a3cb035de1d6c773b8c",
+      "profile_sha256": "11d39094f044f0cda0febb3ad517b830301da6b2ce929664af09ee9e4dd264f9",
+      "audit": {
+        "package": {
+          "ecosystem": "Ubuntu:24.04:LTS",
+          "name": "apparmor"
+        },
+        "version": "4.0.1really4.0.1-0ubuntu0.24.04.9"
+      }
     }
   ],
   "components": {

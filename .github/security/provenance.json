@@ -32,7 +32,11 @@
     "https://archive.ubuntu.com/ubuntu/dists/stonking/InRelease",
     "https://ubuntu.com/security/CVE-2026-87766",
     "https://ubuntu.com/security/notices/USN-8779-2",
-    "https://github.com/containers/bubblewrap/releases/tag/v0.12.0"
+    "https://github.com/containers/bubblewrap/releases/tag/v0.12.0",
+    "https://packages.ubuntu.com/noble-updates/apparmor-profiles",
+    "https://archive.ubuntu.com/ubuntu/dists/noble-updates/InRelease",
+    "https://github.com/containers/bubblewrap/blob/2a76602a8c71f36c1527cf9fc3417d9149822e0c/bubblewrap.c",
+    "https://github.com/openai/codex-security/blob/main/github-action/scripts/setup-ubuntu-sandbox.sh"
   ],
   "new_actions": {
     "step-security/harden-runner": {
@@ -68,7 +72,7 @@
     "pcre2_source_version": "10.50~DEV (accepted upstream development commit, not a released tarball)",
     "python_packages": 47,
     "native_opam_packages": 182,
-    "native_audit_queries": 236,
+    "native_audit_queries": 237,
     "audit_policy": "Every returned advisory, missing result or unfinished response fails; no ignored IDs or dependency overrides",
     "platform": "Ubuntu 24.04 x86_64, Python 3.12",
     "cache_policy": "Verified wheel and native libraries only, bound to source/build locks and builder code; fresh dependency audit on reuse",
@@ -76,6 +80,7 @@
     "timeout_evidence": "native-build-timings.json: measured local phases and explicit margin; actual hosted cold run still required",
     "opam_sources": "Full switch metadata, mandatory SHA256/SHA512 verification, official content-addressed mirror and upstream fallback; both dev commits use byte-equivalent SHA256 archives",
     "sandbox": "Hash-verified Ubuntu 26.10 bubblewrap 0.12.0-1, whose declared runtime minima are satisfied by Ubuntu 24.04, extracted privately. Audit exact distribution identity and upstream commit; verify executable hash, linked libraries, all three opam wrappers and actual sandbox execution. No fallback to an unsandboxed build.",
-    "sandbox_runtime": "Uses the Ubuntu runner libc, libcap and SELinux runtime; no system package scripts, AppArmor policy or kernel configuration are modified."
+    "sandbox_runtime": "Uses the Ubuntu runner libc, libcap and SELinux runtime. On GitHub-hosted Ubuntu 24.04 only, install the exact verified helper at a dedicated root-owned path and load a hash-verified Ubuntu-derived AppArmor profile limited to that helper. Preserve child capability denial and global kernel restrictions; require the actual child stack, zero effective/permitted capabilities and NoNewPrivs=1. No package scripts or system Bubblewrap changes.",
+    "sandbox_policy": "Ubuntu 24.04 apparmor-profiles 4.0.1really4.0.1-0ubuntu0.24.04.9; package SHA256 90b02aa006eea7702cd4e851343e469e41365dda42145a3cb035de1d6c773b8c, original profile SHA256 11d39094f044f0cda0febb3ad517b830301da6b2ce929664af09ee9e4dd264f9. Signed archive index verified. Only attachment, paired names, narrower parent capabilities and removal of optional local overrides differ."
   }
 }
