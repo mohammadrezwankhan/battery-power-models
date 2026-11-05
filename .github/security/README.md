@@ -232,7 +232,11 @@ PCRE2 dependency.
 The next hosted run reached the actual sandbox and failed with `bwrap: loopback:
 Failed RTM_NEWADDR: Operation not permitted`. On a GitHub-hosted Ubuntu 24.04 VM
 only, the builder now copies the verified helper to the dedicated root-owned
-`/opt/rezwan-native-sandbox/bin/bwrap` path and loads a dedicated AppArmor policy.
+`/usr/libexec/rezwan-native-sandbox/bin/bwrap` path and loads a dedicated AppArmor policy.
+The qualified runner image makes `/opt` world-writable for tool installation.
+The helper uses the system `/usr/libexec` prefix instead; every existing ancestor
+must still pass the unchanged ownership and permission checks. No existing
+directory ownership or permissions are changed to make a path acceptable.
 The policy comes from Ubuntu 24.04's hash-locked `apparmor-profiles`
 `4.0.1really4.0.1-0ubuntu0.24.04.9` package, which is separately audited by its
 source package identity. The package was verified against the signed Ubuntu

@@ -25,7 +25,7 @@ from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
 LOGGER = logging.getLogger(__name__)
-HOSTED_SANDBOX = Path("/opt/rezwan-native-sandbox/bin/bwrap")
+HOSTED_SANDBOX = Path("/usr/libexec/rezwan-native-sandbox/bin/bwrap")
 HOSTED_POLICY = Path("/etc/apparmor.d/rezwan-native-bwrap")
 
 
