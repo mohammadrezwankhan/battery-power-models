@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",
-    "@types/node": "24.10.1",
+    "@types/node": "26.6.6",
     "eslint": "9.39.1",
     "globals": "16.4.0",
     "prettier": "3.9.10",
@@ -21,7 +21,7 @@
     "typescript-eslint": "8.72.1"
   },
   "overrides": {
-    "@typescript-eslint/typescript-estree@8.46.3": {
+    "@typescript-eslint/typescript-estree@8.72.1": {
       "minimatch": "11.0.4"
     }
   }
