@@ -18,10 +18,10 @@
     "globals": "16.4.0",
     "prettier": "3.9.10",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.46.3"
+    "typescript-eslint": "8.72.1"
   },
   "overrides": {
-    "@typescript-eslint/typescript-estree@8.46.3": {
+    "@typescript-eslint/typescript-estree@8.72.1": {
       "minimatch": "11.0.4"
     }
   }
