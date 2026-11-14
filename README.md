@@ -1,4 +1,4 @@
-![Battery and Power Reference Lab: original vector system illustration](assets/hero-25d.svg)
+![Battery and Power Reference Lab: original vector system illustration](assets/brand-uniformity/hero-25d.svg)
 
 Dependency-free Python references and MATLAB equivalents cover lumped battery heating and DC-link sizing. The browser lab follows the thermal balance and directs electrical sizing questions to the native functions.
 
@@ -23,7 +23,7 @@ The browser lab runs offline with no packages, accounts, or live data feeds. Its
 <details>
 <summary>System topology and model boundaries</summary>
 
-![Lumped pouch thermal](assets/svg-2.5d/diagrams/lumped-pouch-thermal.svg)
+![Lumped pouch thermal](assets/brand-uniformity/svg-2.5d/diagrams/lumped-pouch-thermal.svg)
 
 Source-defined first-order lumped thermal model; no cell-specific spatial field.
 
