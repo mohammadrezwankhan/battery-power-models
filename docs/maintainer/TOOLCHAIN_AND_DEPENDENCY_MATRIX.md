@@ -1,0 +1,28 @@
+# Toolchain and dependency matrix
+
+> Documentation snapshot: **2026-11-19**. Implementation examined: [`0304bfec25c43f42f103ebda239749b88609a187`](https://github.com/mohammadrezwankhan/battery-power-models/tree/0304bfec25c43f42f103ebda239749b88609a187). Execution evidence and proposals are identified separately.
+
+| Layer | Declared configuration | Observed audit environment / evidence | Limits |
+|---|---|---|---|
+| Native Python runtime | README Python 3.10+; standard-library imports; Ruff/mypy target 3.10 | CPython 3.12.14 model/test execution | Does not establish every supported-version combination |
+| Python dev tools | Ruff 0.17.4, mypy 2.4.1, pytest 9.2.0, pytest-cov 7.1.0, Hypothesis 6.170.15 | Exact flat dev-group pins installed in an isolated venv inheriting system packages | Development requirements differ from standard-library model runtime; environment was not minimal/hermetic |
+| pip group installation | Workflows call `python -m pip install --group dev` | Audit pip 25.0.1 used TOML expansion to install the same list | `--group` itself requires pip 25.1+ |
+| Browser runtime | Self-contained inline teaching scripts, local styles/assets/config; no frontend package build | Static CSP and guide checks; selected thermal checkpoint evaluation | Browser GUI launch was unavailable locally; no full interaction claim |
+| Node quality tooling | Node >=22; CI Node 24; exact `package-lock.json` | Node 24.22.3; isolated `npm ci --ignore-scripts` completed with unchanged lockfile | Development-only; no Node runtime required to view the published HTML |
+| Browser dev packages | ESLint/@eslint/js 9.39.5; TypeScript 5.9.3; typescript-eslint 8.55.0; Prettier 3.9.10; globals 17.14.0; @types/node 26.6.6; scoped minimatch override 11.0.4 | Lockfile resolves the complete transitive set | Do not change pins in a documentation update |
+| MATLAB numerical validation | Hardened CI selects R2026a and invokes the existing gate | Exact-source historical CI success; no local MATLAB/Octave | Minimum supported MATLAB release is not established |
+| Security scanners / builds | Separate bootstrap/build requirement files, binary/native-scanner metadata and provenance records under `.github/security` | Existing source contracts and historical CI checks; selected internals indexed | Scanner packages are not native-model dependencies; full build reproduction was not performed locally |
+| Docs rendering | Canonical Markdown; narrowly scoped standard-library Python renderer invokes Pandoc | Pandoc 3.1.11.1 used for the derived handbook | Optional authoring tool only; generated page has no Pandoc/Python dependency |
+| Citation validation | Existing `CITATION.cff` declares CFF 1.2.0 | Official CFF 1.2.0 JSON schema with duplicate-key-rejecting YAML parse and JSON-schema format checks | Parser semantics recorded; no DOI/version/contact added |
+
+Primary repository evidence: [README runtime](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/README.md#L55-L80), [Python tooling](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/pyproject.toml#L1-L22), [NPM manifest](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/package.json#L1-L28), [hardening workflow](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/.github/workflows/hardened-ci.yml#L1-L149), [Python workflow](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/.github/workflows/python-validation.yml#L1-L50), [security guide](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/.github/security/README.md#L1-L307), [CFF](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/CITATION.cff#L1-L16). Official pip dependency-group behavior is documented in the [pip guide](https://pip.pypa.io/en/stable/user_guide/#dependency-groups).
+
+## Reproduction choices
+
+Use the source checkout's manifests and lockfile as the version authority. Capture the resolved environment and exact commands with each run rather than treating the table as an evergreen lockfile. `npm ci --ignore-scripts` reproduces the committed Node dependency graph without running dependency lifecycle scripts. The current flat Python dev list is pinned, while the audit's inherited system packages remain an explicit limitation. [Setup](../developer/SETUP_AND_REPRODUCIBILITY.md) gives the corresponding commands.
+
+The repository has security/bootstrap/build dependency families that support scanners and provenance, not the scientific API. Their existing [tooling guide](../../.github/security/README.md) and pinned records remain canonical. Generated locks, OCaml switch export and binary/scanner metadata are retained and indexed rather than rewritten or described as fully independently rebuilt.
+
+## Maintenance trigger
+
+Whenever a manifest, interpreter selection, native function signature, scanner contract, Pages route or lesson config changes, update the affected table row, rerun the corresponding checks, and retain the previous evidence as a dated observation. Changes to test tooling can change collection counts without changing model behavior. Changes to the source SHA invalidate source links and parity captures until regenerated. [Capture source hashing](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/scripts/capture_python_parity.py#L1-L214).

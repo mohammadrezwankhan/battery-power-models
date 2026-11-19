@@ -162,3 +162,14 @@ assumptions used in the result.
 [MIT](LICENSE)
 
 </details>
+
+## Source-backed reference documentation
+
+The [documentation index](docs/INDEX.md) and [rendered reference guide](docs/reference/index.html) add developer, scientific, maintainer and owner reading paths for source snapshot `0304bfec25c43f42f103ebda239749b88609a187` (reviewed 2026-11-19).
+
+- [Setup and reproducibility](docs/developer/SETUP_AND_REPRODUCIBILITY.md), [API/CLI contracts](docs/developer/API_CLI_AND_INTERFACES.md), and [worked examples](docs/developer/WORKED_EXAMPLES_AND_LABS.md).
+- [Implemented equations](docs/math-and-physics/EQUATIONS_AND_DERIVATIONS.md), [units/default mappings](docs/math-and-physics/PARAMETERS_AND_SYMBOLS.md), and [assumptions and limits](docs/math-and-physics/ASSUMPTIONS_AND_LIMITS.md).
+- [Verification evidence](docs/maintainer/VERIFICATION_EVIDENCE_LEDGER.md), [CI/publication playbook](docs/maintainer/CI_CD_AND_RELEASE_PLAYBOOK.md), and [owner recovery guidance](docs/owner/BUS_FACTOR_RECOVERY_RUNBOOK.md).
+- [Twelve-month proposal roadmap](ROADMAP.md), [source coverage](docs/SOURCE_EVIDENCE.md), and [unreleased documentation history](CHANGELOG.md).
+
+The native model runtime uses Python's standard library. The **current test suite requires the declared development group** in [pyproject.toml](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/pyproject.toml#L1-L2); see setup before running the earlier quick-start test command. Native thermal time is in seconds; the active browser lesson uses minutes, direct heat input and different defaults. Its exported lesson config retains a historical source snapshot. Current CLI interval handling and these differences are documented explicitly in the reference guide.
