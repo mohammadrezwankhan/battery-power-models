@@ -25,6 +25,8 @@ SOURCE_PATHS = (
     "src/dc_link.py",
     "matlab/battery_thermal_lumped.m",
     "matlab/dc_link_ripple.m",
+    "matlab/triangular_current_ripple_vpp.m",
+    "matlab/minimum_capacitance_for_energy_pulse.m",
     "tests/fixtures/python_matlab_parity.json",
     "scripts/capture_python_parity.py",
     "tools/security_numerical_gate.m",
@@ -67,7 +69,7 @@ def compare(actual: list[float], expected: list[float]) -> dict[str, object]:
     values = finite_vector(actual)
     reference = finite_vector(expected)
     absolute = [abs(a - b) for a, b in zip(values, reference, strict=True)]
-    bounds = [1e-12 + 1e-9 * abs(value) for value in reference]
+    bounds = [1e-12 + 1e-12 * abs(value) for value in reference]
     return {
         "baseline_values": reference,
         "absolute_errors": absolute,
@@ -106,7 +108,7 @@ def capture() -> dict[str, object]:
     )
     if (
         fixture.get("schema_version") != 1
-        or finite_number(fixture.get("relative_tolerance")) != 1e-9
+        or finite_number(fixture.get("relative_tolerance")) != 1e-12
         or finite_number(fixture.get("absolute_tolerance")) != 1e-12
     ):
         raise ValueError("Parity fixture schema or tolerances changed")
@@ -175,7 +177,7 @@ def capture() -> dict[str, object]:
         "source_commit": commit,
         "source_sha256": before,
         "fixture_source_commit": fixture.get("source_commit"),
-        "relative_tolerance": 1e-9,
+        "relative_tolerance": 1e-12,
         "absolute_tolerance": 1e-12,
         "thermal": thermal,
         "dc_link": dc_link,

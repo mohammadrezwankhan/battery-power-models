@@ -1,8 +1,29 @@
 ![Battery and Power Reference Lab: original vector system illustration](assets/brand-uniformity/hero-25d.svg)
 
+[![Hardened CI](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/hardened-ci.yml/badge.svg)](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/hardened-ci.yml) [![Python validation](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/python-validation.yml/badge.svg)](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/python-validation.yml) [![CodeQL](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/codeql.yml/badge.svg)](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/codeql.yml)
+
 Dependency-free Python references and MATLAB equivalents cover lumped battery heating and DC-link sizing. The browser lab follows the thermal balance and directs electrical sizing questions to the native functions.
 
 **[Native-source lesson guide](docs/portfolio/) · [Offline interactive lab](docs/index.html) · [Lesson configuration](docs/lesson-config.json) · [Configuration schema](docs/lesson-config.schema.json)**
+
+## Reproducibility and scientific verification
+
+The [eight-domain audit package](audit/AUDIT_REPORT.md) contains the [requirement matrix](audit/VERIFICATION_MATRIX.md), [mathematical and MATLAB parity evidence](audit/NUMERICAL_PARITY_REPORT.md), [browser QA](audit/BROWSER_AUDIT.md), [CI security report](audit/CI_SECURITY_REPORT.md), [branch inventory](audit/BRANCH_HYGIENE_REPORT.md), [fix log](audit/FIX_LOG.md) and [release gate](audit/FINAL_RELEASE_GATE.md).
+
+Native **Python 3.10 and 3.12** models are standard-library-only; running the regression and property suites requires the development dependency group. The MATLAB R2026a numerical gate tests independent physics fixtures at `1e-12` relative and near-zero absolute tolerance; its public single-purpose DC-link functions do not require dummy parameters.
+
+```bash
+python -m pip install --group dev
+python -m unittest discover -s tests -v
+python -m pytest -q
+python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv
+python src/dc_link.py
+node tests/browser/offline-e2e.mjs
+```
+
+The last browser command requires local Chrome/Chromium and Node 24; it tests the four-module standalone lab with networking disconnected, keyboard interaction, reduced motion, 320–1280px viewports, and actual 241-row synthetic CSV export. [Hardened GitHub Actions](.github/workflows/hardened-ci.yml) runs this automatically, including source lint/types, security scanners, MATLAB tests, numerical coverage and a clean PR diff.
+
+**Safety and applicability:** All figures and outputs are deterministic educational reference calculations, **not measured cell/pack performance, inverter certification, battery safety qualification, component rating or operational engineering advice**. The lumped temperature model uses constant resistance and effective cooling; DC-link equations omit ESR/ESL and require a zero-mean symmetric triangular capacitor-current assumption. See the [scientific limits](docs/math-and-physics/ASSUMPTIONS_AND_LIMITS.md) before adaptation.
 
 ## Previous animations
 
@@ -51,12 +72,14 @@ Motion is optional; the vector topology remains readable with reduced motion ena
 - [src/dc_link.py](src/dc_link.py)
 - [matlab/battery_thermal_lumped.m](matlab/battery_thermal_lumped.m)
 - [matlab/dc_link_ripple.m](matlab/dc_link_ripple.m)
+- [matlab/triangular_current_ripple_vpp.m](matlab/triangular_current_ripple_vpp.m)
+- [matlab/minimum_capacitance_for_energy_pulse.m](matlab/minimum_capacitance_for_energy_pulse.m)
 - [tests/test_models.py](tests/test_models.py)
 - [tests/test_input_validation.py](tests/test_input_validation.py)
 
 ### Explore or run the source
 
-Python 3.10+; no third-party Python dependencies. MATLAB is optional for the equivalent functions.
+Python 3.10+; no third-party Python runtime dependencies. The test suite additionally needs the declared `dev` dependency group (install with `python -m pip install --group dev`). MATLAB is optional for the equivalent functions, including standalone three- and four-argument DC-link functions alongside the original seven-argument combined interface.
 
 ```bash
 python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv
@@ -97,14 +120,18 @@ Small, inspectable reference models for early battery-thermal and DC-link design
 C_th dT/dt = I^2 R - hA(T - T_ambient)
 ```
 
-The implementation uses the analytical state update over each time step. It is useful for sensitivity checks involving current, internal resistance, thermal capacitance, ambient temperature, and effective cooling conductance.
+The implementation uses the analytical state update over each time step, including the exact adiabatic limit at zero cooling conductance. It is useful for sensitivity checks involving current, internal resistance, thermal capacitance, ambient temperature, and effective cooling conductance.
+
+**Scope:** Resistance, thermal capacitance, cooling conductance and ambient conditions are fixed within each interval. Heating is `I²R` only; temperature/SOC-dependent resistance, reversible entropic heat and spatial gradients are not modelled. A lumped-temperature assumption should be checked against geometry, thermal conductivity and a sufficiently small Biot number, `Bi = h L_c / k << 0.1`; this condition is not established by the reference model.
 
 ### DC-Link Ripple and Capacitance
 
 `src/dc_link.py` contains two transparent sizing relationships:
 
-- Voltage ripple from an assumed triangular capacitor-current waveform.
-- Minimum capacitance for an energy pulse at a specified bus voltage and allowed voltage drop.
+- Ideal voltage ripple `ΔVpp = ΔIpp / (8 f_sw C)` for a **zero-mean, symmetric triangular capacitor-current** waveform (not a universal inductor-current or inverter ripple rule).
+- Exact minimum capacitance `C = 2 P t / [ΔV(2 Vbus - ΔV)]` for an ideal capacitor supplying a constant-power pulse, where `0 < ΔV < Vbus`.
+
+These are ideal capacitance relations: ESR, ESL, tolerance, DC-bias/temperature dependence, ripple-current heating, switching transients and hardware qualification are excluded. The ESR-associated voltage swing alone may be as large as `ΔIpp × ESR`, but capacitive and resistive voltage extrema need not coincide. Do not simply add them as an exact total. The small-drop approximation `C ≈ Pt/(Vbus ΔV)` is not used by the solver.
 
 MATLAB equivalents are provided in `matlab/` for model-based engineering workflows.
 

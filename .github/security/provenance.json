@@ -4,7 +4,7 @@
   "python_tools": {
     "zizmor": "1.32.0",
     "pip-audit": "2.10.1",
-    "opengrep": "1.33.1 (complete Python CLI built from pinned upstream source)"
+    "opengrep": "1.33.1 (complete Python CLI built from pinned upstream source with the wcmatch requirement set to the security lock's 11.2 pin)"
   },
   "sources": [
     "https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1",

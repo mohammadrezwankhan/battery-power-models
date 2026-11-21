@@ -22,7 +22,7 @@ def test_current_python_matches_all_frozen_cases() -> None:
     assert report["passed"] is True  # noqa: S101 -- regression contract
     assert len(report["thermal"]) == 6  # noqa: S101
     assert len(report["dc_link"]) == 4  # noqa: S101
-    assert len(report["source_sha256"]) == 7  # noqa: S101
+    assert len(report["source_sha256"]) == 9  # noqa: S101
     for case in [*report["thermal"], *report["dc_link"]]:
         assert case["max_absolute_error"] == 0.0  # noqa: S101 -- exact current fixture replay
     CAPTURE.verify_capture(report, CAPTURE.capture())
@@ -44,6 +44,13 @@ def test_changed_source_missing_case_and_changed_value_cannot_verify() -> None:
     for changed in mutations:
         with pytest.raises(ValueError, match="fresh execution"):
             CAPTURE.verify_capture(changed, original)
+
+
+def test_parity_bound_uses_one_part_per_trillion_for_well_scaled_values() -> None:
+    near = CAPTURE.compare([1.0 + 5e-13], [1.0])
+    beyond = CAPTURE.compare([1.0 + 3e-12], [1.0])
+    assert near["passed"] is True  # noqa: S101 -- inside tightened tolerance
+    assert beyond["passed"] is False  # noqa: S101 -- outside tightened tolerance
 
 
 def test_comparison_retains_errors_and_near_zero_bound() -> None:

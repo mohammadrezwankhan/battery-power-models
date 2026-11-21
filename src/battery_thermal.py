@@ -11,6 +11,17 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def _require_finite_real(name: str, value: object) -> None:
+    """Reject booleans, non-real types, and nonfinite or unconvertible numbers."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a finite real number")
+    try:
+        finite = math.isfinite(value)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError(f"{name} must be a finite real number") from error
+    if not finite:
+        raise ValueError(f"{name} must be finite")
+
 @dataclass(frozen=True)
 class ThermalParameters:
     resistance_ohm: float = 0.003
@@ -25,14 +36,13 @@ class ThermalParameters:
             "cooling_conductance_w_per_k",
             "ambient_c",
         ):
-            if not math.isfinite(getattr(self, name)):
-                raise ValueError(f"{name} must be finite")
+            _require_finite_real(name, getattr(self, name))
         if self.resistance_ohm < 0:
             raise ValueError("resistance_ohm must be non-negative")
         if self.thermal_capacitance_j_per_k <= 0:
             raise ValueError("thermal_capacitance_j_per_k must be positive")
-        if self.cooling_conductance_w_per_k <= 0:
-            raise ValueError("cooling_conductance_w_per_k must be positive")
+        if self.cooling_conductance_w_per_k < 0:
+            raise ValueError("cooling_conductance_w_per_k must be non-negative")
 
 
 def analytical_step(
@@ -40,17 +50,74 @@ def analytical_step(
 ) -> float:
     """Advance one constant-current interval using the exact first-order solution."""
     params.validate()
-    if not all(math.isfinite(value) for value in (temp_c, current_a, dt_s)):
-        raise ValueError("temperature, current, and dt_s must be finite")
+    for name, value in (("temp_c", temp_c), ("current_a", current_a), ("dt_s", dt_s)):
+        _require_finite_real(name, value)
     if dt_s <= 0:
         raise ValueError("dt_s must be positive")
 
-    heat_w = current_a * current_a * params.resistance_ohm
-    steady_c = params.ambient_c + heat_w / params.cooling_conductance_w_per_k
-    decay = math.exp(
-        -params.cooling_conductance_w_per_k * dt_s / params.thermal_capacitance_j_per_k
-    )
-    result = steady_c + (temp_c - steady_c) * decay
+    resistance = params.resistance_ohm
+    capacitance = params.thermal_capacitance_j_per_k
+    conductance = params.cooling_conductance_w_per_k
+    # Avoid the undefined IEEE-754 form infinity * zero when R is exactly zero.
+    heat_w = 0.0 if current_a == 0 or resistance == 0 else current_a * current_a * resistance
+    if not math.isfinite(heat_w) or (
+        heat_w == 0 and current_a != 0 and resistance != 0
+    ):
+        try:
+            heat_w = (current_a * math.sqrt(resistance)) ** 2
+        except OverflowError as error:
+            raise ValueError(
+                "thermal heat generation is not representable as a finite float"
+            ) from error
+    if not math.isfinite(heat_w):
+        raise ValueError("thermal heat generation is not representable as a finite float")
+
+    if conductance == 0:
+        # Exact adiabatic limit: C_th * dT/dt = I²R.
+        heat_delta = (heat_w / capacitance) * dt_s
+        if heat_delta == 0 and heat_w > 0:
+            heat_delta = (heat_w * dt_s) / capacitance
+        result = temp_c + heat_delta
+    else:
+        x = (conductance * dt_s) / capacitance
+        if not math.isfinite(x):
+            x = (conductance / capacitance) * dt_s
+        if x < 1e-6:
+            # The steady-state expression loses significant digits as hA -> 0.
+            fade = -math.expm1(-x)
+            ratio = 1.0 if x == 0 else fade / x
+            heat_delta = (heat_w / capacitance) * dt_s
+            if heat_delta == 0 and heat_w > 0:
+                heat_delta = (heat_w * dt_s) / capacitance
+            cooling_delta = (params.ambient_c - temp_c) * fade
+            base = (
+                temp_c + cooling_delta
+                if math.isfinite(cooling_delta)
+                else temp_c * math.exp(-x) + params.ambient_c * fade
+            )
+            result = base + heat_delta * ratio
+        else:
+            # Preserve the old expression for ordinary well-scaled cases.
+            steady_c = params.ambient_c + heat_w / conductance
+            difference = temp_c - steady_c
+            decay = math.exp(-x)
+            if math.isfinite(steady_c) and math.isfinite(difference):
+                result = steady_c + difference * decay
+            else:
+                # The formal steady state or temperature difference may
+                # overflow even while the exact transient remains finite.
+                fade = -math.expm1(-x)
+                heat_gain = heat_w / conductance
+                if math.isfinite(heat_gain):
+                    heat_gain *= fade
+                else:
+                    heat_delta = (heat_w / capacitance) * dt_s
+                    if heat_delta == 0 and heat_w > 0:
+                        heat_delta = (heat_w * dt_s) / capacitance
+                    heat_gain = heat_delta * (fade / x)
+                result = (
+                    temp_c * decay + params.ambient_c * fade + heat_gain
+                )
     if not math.isfinite(result):
         raise ValueError("thermal update is not representable as a finite float")
     return result
@@ -64,9 +131,11 @@ def simulate(
 ) -> list[float]:
     """Return temperature at t=0 and after each current-profile interval."""
     params.validate()
+    if not isinstance(currents_a, Sequence) or len(currents_a) == 0:
+        raise ValueError("currents_a must be a nonempty sequence")
     temp_c = params.ambient_c if initial_c is None else initial_c
-    if not math.isfinite(temp_c) or not math.isfinite(dt_s):
-        raise ValueError("initial temperature and dt_s must be finite")
+    _require_finite_real("initial_c", temp_c)
+    _require_finite_real("dt_s", dt_s)
     if dt_s <= 0:
         raise ValueError("dt_s must be positive")
     temperatures = [temp_c]
@@ -77,8 +146,8 @@ def simulate(
 
 
 def constant_profile(current_a: float, duration_s: float, dt_s: float) -> list[float]:
-    if not all(math.isfinite(value) for value in (current_a, duration_s, dt_s)):
-        raise ValueError("current_a, duration_s, and dt_s must be finite")
+    for name, value in (("current_a", current_a), ("duration_s", duration_s), ("dt_s", dt_s)):
+        _require_finite_real(name, value)
     if duration_s <= 0 or dt_s <= 0:
         raise ValueError("duration_s and dt_s must be positive")
     ratio = duration_s / dt_s
@@ -95,12 +164,13 @@ def write_csv(
     currents = list(currents_a)
     if len(temperatures_c) != len(currents) + 1:
         raise ValueError("temperatures_c must contain one more value than currents_a")
-    if not math.isfinite(dt_s) or dt_s <= 0:
-        raise ValueError("dt_s must be finite and positive")
-    if not all(math.isfinite(value) for value in currents):
-        raise ValueError("currents_a must contain only finite values")
-    if not all(math.isfinite(value) for value in temperatures_c):
-        raise ValueError("temperatures_c must contain only finite values")
+    _require_finite_real("dt_s", dt_s)
+    if dt_s <= 0:
+        raise ValueError("dt_s must be positive")
+    for current in currents:
+        _require_finite_real("currents_a element", current)
+    for temperature in temperatures_c:
+        _require_finite_real("temperatures_c element", temperature)
     if not math.isfinite(len(currents) * dt_s):
         raise ValueError("trace duration is not representable as a finite float")
     with path.open("w", newline="", encoding="utf-8") as stream:

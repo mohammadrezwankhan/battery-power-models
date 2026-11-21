@@ -332,6 +332,20 @@ class CachedBuildIntegrityTests(unittest.TestCase):
             )
 
 
+class OpenGrepPackagingTests(unittest.TestCase):
+    def test_patches_only_the_expected_upstream_dependency(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            setup = Path(temporary) / "setup.py"
+            setup.write_text('install_requires = ["wcmatch~=8.3", "attrs>=21.3"]\n')
+            native_scanner.pin_opengrep_wcmatch(setup)
+            self.assertEqual(
+                setup.read_text(),
+                'install_requires = ["wcmatch==11.2", "attrs>=21.3"]\n',
+            )
+            with self.assertRaisesRegex(RuntimeError, "OpenGrep wcmatch requirement"):
+                native_scanner.pin_opengrep_wcmatch(setup)
+
+
 class BuildFailureEvidenceTests(unittest.TestCase):
     """Failed external build steps must retain a truthful terminal receipt."""
 

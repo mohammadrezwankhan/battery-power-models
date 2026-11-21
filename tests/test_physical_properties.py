@@ -48,7 +48,7 @@ class PhysicalPropertyTests(unittest.TestCase):
         for params in (
             ThermalParameters(resistance_ohm=-1.0),
             ThermalParameters(thermal_capacitance_j_per_k=0.0),
-            ThermalParameters(cooling_conductance_w_per_k=0.0),
+            ThermalParameters(cooling_conductance_w_per_k=-1.0),
         ):
             with self.subTest(params=params), self.assertRaises(ValueError):
                 analytical_step(25.0, 80.0, 1.0, params)

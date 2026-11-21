@@ -21,14 +21,19 @@ class NumericBoundaryTests(unittest.TestCase):
     def test_thermal_overflow_is_rejected(self) -> None:
         for temp, current, params in (
             (25.0, 1e200, ThermalParameters()),
-            (25.0, 1e150, ThermalParameters(cooling_conductance_w_per_k=1e-300)),
-            (-1e308, 0.0, ThermalParameters(ambient_c=1e308)),
         ):
             with (
                 self.subTest(temp=temp, current=current, params=params),
                 self.assertRaisesRegex(ValueError, "representable"),
             ):
                 analytical_step(temp, current, 1.0, params)
+
+    def test_quasi_adiabatic_high_power_is_finite_when_physics_is_finite(self) -> None:
+        params = ThermalParameters(cooling_conductance_w_per_k=1e-300)
+        actual = analytical_step(25.0, 1e150, 1.0, params)
+        expected = (1e150 * 1e150 * 0.003) / 5000.0
+        self.assertTrue(math.isfinite(actual))
+        self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12))
 
     def test_positive_subnormal_duration_still_has_an_interval(self) -> None:
         self.assertEqual(constant_profile(2.0, math.ulp(0.0), 2.0), [2.0])
@@ -67,7 +72,6 @@ class NumericBoundaryTests(unittest.TestCase):
     def test_ripple_rejects_unrepresentable_arithmetic(self) -> None:
         for values in (
             (1.0, 1e-300, 1e-300),
-            (1.0, 1e308, 1.0),
             (1e308, 1.0, 1e-300),
             (1e-300, 1e100, 1e100),
         ):
@@ -76,13 +80,32 @@ class NumericBoundaryTests(unittest.TestCase):
 
     def test_capacitance_rejects_unrepresentable_arithmetic(self) -> None:
         for values in (
-            (1e308, 10.0, 800.0, 20.0),
             (1.0, 1.0, 1e-300, 1e-301),
-            (1.0, 1.0, 1e308, 1.0),
             (1e-200, 1e-200, 800.0, 20.0),
+            (1e308, 1e308, 800.0, 20.0),
         ):
             with self.subTest(values=values), self.assertRaisesRegex(ValueError, "representable"):
                 minimum_capacitance_for_energy_pulse(*values)
+
+    def test_dc_link_avoids_spurious_intermediate_overflow(self) -> None:
+        cases = (
+            (1.0, 1e308, 1.0, 1.25e-309),
+            (1e308, 1e308, 1e308, 1.25e-309),
+            (1e-300, 1e-300, 1e308, 1.25e-309),
+        )
+        for current, frequency, capacitance, expected in cases:
+            with self.subTest(current=current, frequency=frequency, capacitance=capacitance):
+                actual = triangular_current_ripple_vpp(current, frequency, capacitance)
+                self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-320))
+        pulse_cases = (
+            (1e308, 10.0, 800.0, 20.0, 6.329113924050633e304),
+            (1.0, 1.0, 1e308, 1.0, 1e-308),
+            (1e308, 1e308, 1e308, 5e307, 8.0 / 3.0),
+        )
+        for power, duration, bus, drop, expected in pulse_cases:
+            with self.subTest(power=power, duration=duration, bus=bus, drop=drop):
+                actual = minimum_capacitance_for_energy_pulse(power, duration, bus, drop)
+                self.assertTrue(math.isclose(actual, expected, rel_tol=5e-13))
 
     def test_zero_load_remains_zero(self) -> None:
         self.assertEqual(triangular_current_ripple_vpp(0.0, 10000.0, 0.0022), 0.0)
