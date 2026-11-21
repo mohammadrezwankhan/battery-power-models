@@ -6,7 +6,6 @@ import math
 import sys
 
 
-
 def _require_finite_real(name: str, value: object) -> None:
     """Reject booleans, non-real types, and nonfinite or unconvertible numbers."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
