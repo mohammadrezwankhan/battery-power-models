@@ -32,10 +32,20 @@ def triangular_current_ripple_vpp(
     if current_pp_a == 0:
         return 0.0
     denominator = 8.0 * switching_hz * capacitance_f
-    if not math.isfinite(denominator) or denominator == 0:
-        raise ValueError("ripple denominator is not representable as a positive finite float")
-    result = current_pp_a / denominator
-    if not math.isfinite(result) or (current_pp_a > 0 and result == 0):
+    result = current_pp_a / denominator if math.isfinite(denominator) and denominator > 0 else 0.0
+    if not math.isfinite(result) or result == 0:
+        # Factorized calculation avoids intermediate overflow and underflow.
+        exponent = (
+            math.log(current_pp_a)
+            - math.log(8.0)
+            - math.log(switching_hz)
+            - math.log(capacitance_f)
+        )
+        try:
+            result = math.exp(exponent)
+        except OverflowError as error:
+            raise ValueError("ripple is not representable as a finite nonzero float") from error
+    if not math.isfinite(result) or result == 0:
         raise ValueError("ripple is not representable as a finite nonzero float")
     return result
 
@@ -60,10 +70,26 @@ def minimum_capacitance_for_energy_pulse(
     energy_j = power_w * pulse_s
     numerator = 2.0 * energy_j
     denominator = allowed_drop_v * (2.0 * bus_v - allowed_drop_v)
-    if not math.isfinite(denominator) or denominator == 0:
-        raise ValueError("capacitance denominator is not representable as a positive finite float")
-    result = numerator / denominator
-    if not math.isfinite(result) or (power_w > 0 and pulse_s > 0 and result == 0):
+    result = (
+        numerator / denominator
+        if math.isfinite(numerator) and math.isfinite(denominator) and denominator > 0
+        else 0.0
+    )
+    if not math.isfinite(result) or result == 0:
+        # Rewrite 2 V - drop as V * (2 - drop / V) to preserve scaling.
+        exponent = (
+            math.log(2.0)
+            + math.log(power_w)
+            + math.log(pulse_s)
+            - math.log(allowed_drop_v)
+            - math.log(bus_v)
+            - math.log(2.0 - allowed_drop_v / bus_v)
+        )
+        try:
+            result = math.exp(exponent)
+        except OverflowError as error:
+            raise ValueError("capacitance is not representable as a finite nonzero float") from error
+    if not math.isfinite(result) or result == 0:
         raise ValueError("capacitance is not representable as a finite nonzero float")
     return result
 
