@@ -38,6 +38,15 @@ classdef TestReferenceModels < matlab.unittest.TestCase
                 'MATLAB:invalidType');
         end
 
+        function dcLinkRetainsFiniteResultsWithOverflowingIntermediates(testCase)
+            result = dc_link_ripple(1, 1e308, 1, 1e308, 10, 800, 20);
+            testCase.verifyEqual(result.ripple_vpp, 1.25e-309, 'RelTol', 1e-12);
+            testCase.verifyEqual(result.minimum_capacitance_f, ...
+                6.329113924050633e304, 'RelTol', 1e-12);
+            result = dc_link_ripple(0, 1e4, 0.01, 1e308, 1e308, 1e308, 5e307);
+            testCase.verifyEqual(result.minimum_capacitance_f, 8 / 3, 'RelTol', 1e-12);
+        end
+
         function nonfiniteThermalValuesAreRejected(testCase)
             testCase.verifyError(@() battery_thermal_lumped(NaN, 1), ...
                 'MATLAB:expectedFinite');
