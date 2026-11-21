@@ -21,7 +21,6 @@ class NumericBoundaryTests(unittest.TestCase):
     def test_thermal_overflow_is_rejected(self) -> None:
         for temp, current, params in (
             (25.0, 1e200, ThermalParameters()),
-            (25.0, 1e150, ThermalParameters(cooling_conductance_w_per_k=1e-300)),
             (-1e308, 0.0, ThermalParameters(ambient_c=1e308)),
         ):
             with (
@@ -29,6 +28,13 @@ class NumericBoundaryTests(unittest.TestCase):
                 self.assertRaisesRegex(ValueError, "representable"),
             ):
                 analytical_step(temp, current, 1.0, params)
+
+    def test_quasi_adiabatic_high_power_is_finite_when_physics_is_finite(self) -> None:
+        params = ThermalParameters(cooling_conductance_w_per_k=1e-300)
+        actual = analytical_step(25.0, 1e150, 1.0, params)
+        expected = (1e150 * 1e150 * 0.003) / 5000.0
+        self.assertTrue(math.isfinite(actual))
+        self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12))
 
     def test_positive_subnormal_duration_still_has_an_interval(self) -> None:
         self.assertEqual(constant_profile(2.0, math.ulp(0.0), 2.0), [2.0])
