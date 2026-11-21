@@ -68,8 +68,15 @@ class CDP {
     return reply.result?.value;
   }
   async key(key) {
-    await this.call('Input.dispatchKeyEvent', { type: 'keyDown', key });
-    await this.call('Input.dispatchKeyEvent', { type: 'keyUp', key });
+    // Browser-native default actions (especially Escape on <dialog>) need
+    // a real CDP key code; a key-name-only event tests an incomplete input.
+    const codes = { ArrowRight: 39, End: 35, Home: 36, Escape: 27 };
+    const code = codes[key] ?? 0;
+    const fields = {
+      key, code: key, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code,
+    };
+    await this.call('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...fields });
+    await this.call('Input.dispatchKeyEvent', { type: 'keyUp', ...fields });
   }
 }
 async function main() {
@@ -184,7 +191,13 @@ async function main() {
     await rm(profile, { recursive: true, force: true, maxRetries: 3 });
   }
 }
-main().catch((error) => {
+main().catch(async (error) => {
   console.error('Mandatory browser QA failed:', error.stack ?? error);
+  const folder = join(root, 'hardening-artifacts');
+  await mkdir(folder, { recursive: true });
+  await writeFile(join(folder, 'browser-offline-qa.json'), JSON.stringify({
+    status: 'failed', checksPassedBeforeFailure: findings,
+    error: String(error), externalRequests: remoteRequests, exceptions: scriptErrors,
+  }, null, 2) + '\n');
   process.exitCode = 1;
 });
