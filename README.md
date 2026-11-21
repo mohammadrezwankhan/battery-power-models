@@ -97,14 +97,18 @@ Small, inspectable reference models for early battery-thermal and DC-link design
 C_th dT/dt = I^2 R - hA(T - T_ambient)
 ```
 
-The implementation uses the analytical state update over each time step. It is useful for sensitivity checks involving current, internal resistance, thermal capacitance, ambient temperature, and effective cooling conductance.
+The implementation uses the analytical state update over each time step, including the exact adiabatic limit at zero cooling conductance. It is useful for sensitivity checks involving current, internal resistance, thermal capacitance, ambient temperature, and effective cooling conductance.
+
+**Scope:** Resistance, thermal capacitance, cooling conductance and ambient conditions are fixed within each interval. Heating is `I²R` only; temperature/SOC-dependent resistance, reversible entropic heat and spatial gradients are not modelled. A lumped-temperature assumption should be checked against geometry, thermal conductivity and a sufficiently small Biot number, `Bi = h L_c / k << 0.1`; this condition is not established by the reference model.
 
 ### DC-Link Ripple and Capacitance
 
 `src/dc_link.py` contains two transparent sizing relationships:
 
-- Voltage ripple from an assumed triangular capacitor-current waveform.
-- Minimum capacitance for an energy pulse at a specified bus voltage and allowed voltage drop.
+- Ideal voltage ripple `ΔVpp = ΔIpp / (8 f_sw C)` for a **zero-mean, symmetric triangular capacitor-current** waveform (not a universal inductor-current or inverter ripple rule).
+- Exact minimum capacitance `C = 2 P t / [ΔV(2 Vbus - ΔV)]` for an ideal capacitor supplying a constant-power pulse, where `0 < ΔV < Vbus`.
+
+These are ideal capacitance relations: ESR, ESL, tolerance, DC-bias/temperature dependence, ripple-current heating, switching transients and hardware qualification are excluded. The ESR-associated voltage swing alone may be as large as `ΔIpp × ESR`, but capacitive and resistive voltage extrema need not coincide. Do not simply add them as an exact total. The small-drop approximation `C ≈ Pt/(Vbus ΔV)` is not used by the solver.
 
 MATLAB equivalents are provided in `matlab/` for model-based engineering workflows.
 

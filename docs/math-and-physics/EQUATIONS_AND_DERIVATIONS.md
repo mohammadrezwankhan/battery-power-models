@@ -28,7 +28,7 @@ That is the expression the code evaluates, rather than a forward-Euler approxima
 
 ### Initial and boundary conditions
 
-`simulate` stores `T(0)=initial_c`, defaulting to the configured ambient. The ambient is a constant thermal reservoir coupled through G; when T is below ambient, `G(T−T_a)` is negative and heat enters the lump. This is a spatially uniform model, so there are no spatial mesh, surface-flux or PDE boundary nodes. The code requires G>0 and therefore does not implement the adiabatic G=0 branch, even though a separate limiting equation could be derived. [Validation and initial state](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/src/battery_thermal.py#L21-L35), [simulation](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/src/battery_thermal.py#L59-L76).
+`simulate` stores `T(0)=initial_c`, defaulting to the configured ambient. The ambient is a constant thermal reservoir coupled through G; when T is below ambient, `G(T−T_a)` is negative and heat enters the lump. This is a spatially uniform model, so there are no spatial mesh, surface-flux or PDE boundary nodes. For the audited implementation, G=0 is supported by the exact adiabatic branch, `T_next = T_now + I²R Δt/C_th`; the historical source snapshot linked in this section predates that remediation. [Validation and initial state](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/src/battery_thermal.py#L21-L35), [simulation](https://github.com/mohammadrezwankhan/battery-power-models/blob/0304bfec25c43f42f103ebda239749b88609a187/src/battery_thermal.py#L59-L76).
 
 ### Native discretization and CLI duration
 

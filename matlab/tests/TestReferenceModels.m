@@ -21,6 +21,23 @@ classdef TestReferenceModels < matlab.unittest.TestCase
             testCase.verifyEqual(actual, expected, 'AbsTol', 1e-12);
         end
 
+        function adiabaticAndQuasiAdiabaticLimits(testCase)
+            params = struct('cooling_conductance_w_per_k', 0);
+            actual = battery_thermal_lumped([80 80], 5, params, 25);
+            expected = [25, 25.0192, 25.0384];
+            testCase.verifyEqual(actual, expected, 'AbsTol', 1e-12);
+            params.cooling_conductance_w_per_k = 1e-14;
+            testCase.verifyEqual(battery_thermal_lumped(80, 10, params, 25), ...
+                expected(end), 'AbsTol', 1e-10);
+        end
+
+        function emptyProfileAndBooleanLikeValuesDoNotSlipThrough(testCase)
+            testCase.verifyError(@() battery_thermal_lumped([], 1), ...
+                'MATLAB:expectedNonempty');
+            testCase.verifyError(@() battery_thermal_lumped(true, 1), ...
+                'MATLAB:invalidType');
+        end
+
         function nonfiniteThermalValuesAreRejected(testCase)
             testCase.verifyError(@() battery_thermal_lumped(NaN, 1), ...
                 'MATLAB:expectedFinite');

@@ -10,7 +10,7 @@ The native implementation demonstrates a constant-parameter lumped thermal balan
 
 | Calculation | Assumptions actually used | Missing effects / information needed before extending use |
 |---|---|---|
-| Native thermal | One uniform temperature; fixed R, C_th, G and ambient; I held constant per supplied interval; I²R heating only | Spatial gradients, cell geometry, state/temperature-dependent resistance, reversible heat, thermal contact details, radiation, phase change, temperature-dependent properties, chemistry and measured calibration |
+| Native thermal | One uniform temperature; fixed R, C_th, G (including the adiabatic G=0 limit) and ambient; I held constant per supplied interval; I²R heating only | Spatial gradients, cell geometry, state/temperature-dependent resistance, reversible heat, thermal contact details, radiation, phase change, temperature-dependent properties, chemistry and measured calibration |
 | Active browser thermal | Constant direct Q; ambient initial state; linear conductance; same closed-form first-order response | Native current/resistance mapping and custom initial temperature; lesson limits are slider bounds, not physical validity bounds |
 | Triangular ripple | Ideal capacitor; symmetric zero-mean triangular capacitor current at specified frequency | ESR/ESL, current-rating and thermal limits, DC bias/tolerance/aging, topology-specific current derivation and transient control response |
 | Energy pulse | Ideal capacitor supplies constant power over the pulse; positive voltage drop below initial bus voltage | Source replenishment, converter efficiency/losses, current limits, allowable minimum voltage under control dynamics, capacitor ratings and uncertainty |
