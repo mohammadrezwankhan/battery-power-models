@@ -48,7 +48,7 @@ for index = 1:numel(currents_a)
         heat_w = 0;
     else
         heat_w = currents_a(index)^2 * params.resistance_ohm;
-        if ~isfinite(heat_w)
+        if ~isfinite(heat_w) || (heat_w == 0 && currents_a(index) ~= 0)
             heat_w = (currents_a(index) * sqrt(params.resistance_ohm))^2;
         end
     end
@@ -57,7 +57,11 @@ for index = 1:numel(currents_a)
             'Thermal heat generation is not representable as a finite double.');
     end
     if conductance == 0
-        temperature_c(index + 1) = temperature_c(index) + heat_w / capacitance * dt_s;
+        heat_delta = heat_w / capacitance * dt_s;
+        if heat_delta == 0 && heat_w > 0
+            heat_delta = heat_w * dt_s / capacitance;
+        end
+        temperature_c(index + 1) = temperature_c(index) + heat_delta;
     elseif x < 1e-6
         fade = -expm1(-x);
         if x == 0

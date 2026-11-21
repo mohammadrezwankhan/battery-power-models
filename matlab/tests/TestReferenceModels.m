@@ -21,6 +21,18 @@ classdef TestReferenceModels < matlab.unittest.TestCase
             testCase.verifyEqual(actual, expected, 'AbsTol', 1e-12);
         end
 
+        function finiteAdiabaticHeatSurvivesIntermediateUnderflow(testCase)
+            params = struct('resistance_ohm', 1e308, ...
+                'thermal_capacitance_j_per_k', 1e-100, ...
+                'cooling_conductance_w_per_k', 0, 'ambient_c', 0);
+            trace = battery_thermal_lumped(1e-200, 1, params, 0);
+            testCase.verifyEqual(trace(end), 1e8, 'RelTol', 1e-12);
+            params.resistance_ohm = 1;
+            params.thermal_capacitance_j_per_k = 1e308;
+            trace = battery_thermal_lumped(1e-150, 1e308, params, 0);
+            testCase.verifyEqual(trace(end), 1e-300, 'RelTol', 1e-12);
+        end
+
         function adiabaticAndQuasiAdiabaticLimits(testCase)
             params = struct('cooling_conductance_w_per_k', 0);
             actual = battery_thermal_lumped([80 80], 5, params, 25);

@@ -60,7 +60,9 @@ def analytical_step(
     conductance = params.cooling_conductance_w_per_k
     # Avoid the undefined IEEE-754 form infinity * zero when R is exactly zero.
     heat_w = 0.0 if current_a == 0 or resistance == 0 else current_a * current_a * resistance
-    if not math.isfinite(heat_w):
+    if not math.isfinite(heat_w) or (
+        heat_w == 0 and current_a != 0 and resistance != 0
+    ):
         try:
             heat_w = (current_a * math.sqrt(resistance)) ** 2
         except OverflowError as error:
@@ -72,7 +74,10 @@ def analytical_step(
 
     if conductance == 0:
         # Exact adiabatic limit: C_th * dT/dt = I²R.
-        result = temp_c + (heat_w / capacitance) * dt_s
+        heat_delta = (heat_w / capacitance) * dt_s
+        if heat_delta == 0 and heat_w > 0:
+            heat_delta = (heat_w * dt_s) / capacitance
+        result = temp_c + heat_delta
     else:
         x = (conductance * dt_s) / capacitance
         if not math.isfinite(x):

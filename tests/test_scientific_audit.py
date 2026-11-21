@@ -50,6 +50,26 @@ class ThermalAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "nonempty"):
             simulate([], 1.0, ThermalParameters())
 
+    def test_intermediate_underflow_cannot_erase_finite_adiabatic_heating(self) -> None:
+        # I² underflows, but I²R/C is 1e8 K and therefore representable.
+        params = ThermalParameters(
+            resistance_ohm=1e308,
+            thermal_capacitance_j_per_k=1e-100,
+            cooling_conductance_w_per_k=0.0,
+            ambient_c=0.0,
+        )
+        result = analytical_step(0.0, 1e-200, 1.0, params)
+        self.assertTrue(math.isclose(result, 1e8, rel_tol=1e-12))
+        # Q/C underflows, but Q*dt/C=1e-300 remains representable.
+        params = ThermalParameters(
+            resistance_ohm=1.0,
+            thermal_capacitance_j_per_k=1e308,
+            cooling_conductance_w_per_k=0.0,
+            ambient_c=0.0,
+        )
+        result = analytical_step(0.0, 1e-150, 1e308, params)
+        self.assertTrue(math.isclose(result, 1e-300, rel_tol=1e-12))
+
     def test_boolean_and_nonreal_numbers_are_rejected(self) -> None:
         invalid = (True, False, None, "1", 1 + 0j, math.nan, math.inf, -math.inf)
         for value in invalid:
