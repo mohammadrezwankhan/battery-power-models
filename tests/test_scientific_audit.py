@@ -70,6 +70,30 @@ class ThermalAuditTests(unittest.TestCase):
         result = analytical_step(0.0, 1e-150, 1e308, params)
         self.assertTrue(math.isclose(result, 1e-300, rel_tol=1e-12))
 
+    def test_finite_cooling_with_opposite_extreme_temperatures(self) -> None:
+        params = ThermalParameters(
+            resistance_ohm=0.0, ambient_c=1e308,
+        )
+        decay = math.exp(-4.0 / 5000.0)
+        fade = -math.expm1(-4.0 / 5000.0)
+        expected = (-1e308 * decay) + (1e308 * fade)
+        actual = analytical_step(-1e308, 0.0, 1.0, params)
+        self.assertTrue(math.isfinite(actual))
+        self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12))
+
+    def test_finite_heating_when_equilibrium_overflows(self) -> None:
+        params = ThermalParameters(
+            resistance_ohm=1.0,
+            thermal_capacitance_j_per_k=1.0,
+            cooling_conductance_w_per_k=1e-10,
+            ambient_c=0.0,
+        )
+        # Q/G overflows, but Q*dt/C multiplied by the exponential factor is finite.
+        expected = 1e305 * (-math.expm1(-1e-5)) / 1e-5
+        actual = analytical_step(0.0, 1e150, 1e5, params)
+        self.assertTrue(math.isfinite(actual))
+        self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12))
+
     def test_boolean_and_nonreal_numbers_are_rejected(self) -> None:
         invalid = (True, False, None, "1", 1 + 0j, math.nan, math.inf, -math.inf)
         for value in invalid:

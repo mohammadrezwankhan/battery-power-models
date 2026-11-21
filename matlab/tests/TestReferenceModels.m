@@ -59,6 +59,24 @@ classdef TestReferenceModels < matlab.unittest.TestCase
             testCase.verifyEqual(result.minimum_capacitance_f, 8 / 3, 'RelTol', 1e-12);
         end
 
+        function finiteCoolingAcrossOppositeExtremeTemperatures(testCase)
+            params = struct('resistance_ohm', 0, 'ambient_c', 1e308);
+            actual = battery_thermal_lumped(0, 1, params, -1e308);
+            decay = exp(-4 / 5000);
+            fade = -expm1(-4 / 5000);
+            expected = (-1e308 * decay) + (1e308 * fade);
+            testCase.verifyEqual(actual(end), expected, 'RelTol', 1e-12);
+        end
+
+        function finiteTransientWithOverflowedEquilibrium(testCase)
+            params = struct('resistance_ohm', 1, ...
+                'thermal_capacitance_j_per_k', 1, ...
+                'cooling_conductance_w_per_k', 1e-10, 'ambient_c', 0);
+            actual = battery_thermal_lumped(1e150, 1e5, params, 0);
+            expected = 1e305 * (-expm1(-1e-5)) / 1e-5;
+            testCase.verifyEqual(actual(end), expected, 'RelTol', 1e-12);
+        end
+
         function nonfiniteThermalValuesAreRejected(testCase)
             testCase.verifyError(@() battery_thermal_lumped(NaN, 1), ...
                 'MATLAB:expectedFinite');
