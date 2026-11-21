@@ -97,10 +97,27 @@ def analytical_step(
             )
             result = base + heat_delta * ratio
         else:
-            # Retain the established, analytically exact well-scaled path.
+            # Preserve the old expression for ordinary well-scaled cases.
             steady_c = params.ambient_c + heat_w / conductance
+            difference = temp_c - steady_c
             decay = math.exp(-x)
-            result = steady_c + (temp_c - steady_c) * decay
+            if math.isfinite(steady_c) and math.isfinite(difference):
+                result = steady_c + difference * decay
+            else:
+                # The formal steady state or temperature difference may
+                # overflow even while the exact transient remains finite.
+                fade = -math.expm1(-x)
+                heat_gain = heat_w / conductance
+                if math.isfinite(heat_gain):
+                    heat_gain *= fade
+                else:
+                    heat_delta = (heat_w / capacitance) * dt_s
+                    if heat_delta == 0 and heat_w > 0:
+                        heat_delta = (heat_w * dt_s) / capacitance
+                    heat_gain = heat_delta * (fade / x)
+                result = (
+                    temp_c * decay + params.ambient_c * fade + heat_gain
+                )
     if not math.isfinite(result):
         raise ValueError("thermal update is not representable as a finite float")
     return result

@@ -21,7 +21,6 @@ class NumericBoundaryTests(unittest.TestCase):
     def test_thermal_overflow_is_rejected(self) -> None:
         for temp, current, params in (
             (25.0, 1e200, ThermalParameters()),
-            (-1e308, 0.0, ThermalParameters(ambient_c=1e308)),
         ):
             with (
                 self.subTest(temp=temp, current=current, params=params),

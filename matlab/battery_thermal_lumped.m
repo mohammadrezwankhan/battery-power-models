@@ -82,7 +82,26 @@ for index = 1:numel(currents_a)
         temperature_c(index + 1) = base + heat_delta * ratio;
     else
         steady_c = params.ambient_c + heat_w / conductance;
-        temperature_c(index + 1) = steady_c + (temperature_c(index) - steady_c) * decay;
+        difference = temperature_c(index) - steady_c;
+        if isfinite(steady_c) && isfinite(difference)
+            temperature_c(index + 1) = steady_c + difference * decay;
+        else
+            % Formal steady state or difference can overflow although
+            % the exact finite-time weighted solution is representable.
+            fade = -expm1(-x);
+            heat_gain = heat_w / conductance;
+            if isfinite(heat_gain)
+                heat_gain = heat_gain * fade;
+            else
+                heat_delta = heat_w / capacitance * dt_s;
+                if heat_delta == 0 && heat_w > 0
+                    heat_delta = heat_w * dt_s / capacitance;
+                end
+                heat_gain = heat_delta * (fade / x);
+            end
+            temperature_c(index + 1) = temperature_c(index) * decay + ...
+                params.ambient_c * fade + heat_gain;
+        end
     end
     if ~isfinite(temperature_c(index + 1))
         error('BatteryPower:Range', ...
