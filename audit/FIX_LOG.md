@@ -19,6 +19,7 @@ Each entry identifies actual root cause, correction and evidence. The status on 
 | IN03 | Extreme heat fallback raised `OverflowError` unexpectedly | `src/battery_thermal.py` | Initially failing CLI/boundary run 44944604763, corrected later |
 | PA01 | Ripple-only MATLAB call required unrelated four dummy inputs | `matlab/triangular_current_ripple_vpp.m`, `matlab/minimum_capacitance_for_energy_pulse.m`, legacy combined delegation | MATLAB 15/15 suite, dedicated API boundary/zero tests |
 | PA02 | Old 1e-9 cross-language tolerance weaker than scientific target | `tests/fixtures/python_matlab_parity.json`, Python capture, MATLAB gate/tests | 1e-12 relative/absolute, 10 baseline & same-run outputs equal |
+| SEC02 | Advanced Security reported untrusted network data in browser failure artifacts | `tests/browser/offline-e2e.mjs` | Failure artifacts now contain only fixed statuses and trusted checkpoint labels, never raw CDP URLs, exception strings or browser-controlled data; CodeQL and review-thread recheck required. |
 | SEC01 | Scanner `wcmatch` dependency CVE | `.github/security/requirements.in`, `requirements.txt` | Real successful dependency security job, no suppression |
 | QA01 | Browser offline and responsive claims unexecuted | `tests/browser/offline-e2e.mjs`, `.github/workflows/hardened-ci.yml` | GitHub Chrome `file://` offline, 8 checks, real CSV, 4 widths, reduced motion |
 | QA02 | Test harness synthetic keyboard event/focus misuse | `tests/browser/offline-e2e.mjs` | Escape and restored focus tested by real CDP browser |
