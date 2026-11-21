@@ -73,7 +73,6 @@ class NumericBoundaryTests(unittest.TestCase):
     def test_ripple_rejects_unrepresentable_arithmetic(self) -> None:
         for values in (
             (1.0, 1e-300, 1e-300),
-            (1.0, 1e308, 1.0),
             (1e308, 1.0, 1e-300),
             (1e-300, 1e100, 1e100),
         ):
@@ -82,13 +81,32 @@ class NumericBoundaryTests(unittest.TestCase):
 
     def test_capacitance_rejects_unrepresentable_arithmetic(self) -> None:
         for values in (
-            (1e308, 10.0, 800.0, 20.0),
             (1.0, 1.0, 1e-300, 1e-301),
-            (1.0, 1.0, 1e308, 1.0),
             (1e-200, 1e-200, 800.0, 20.0),
+            (1e308, 1e308, 800.0, 20.0),
         ):
             with self.subTest(values=values), self.assertRaisesRegex(ValueError, "representable"):
                 minimum_capacitance_for_energy_pulse(*values)
+
+    def test_dc_link_avoids_spurious_intermediate_overflow(self) -> None:
+        cases = (
+            (1.0, 1e308, 1.0, 1.25e-309),
+            (1e308, 1e308, 1e308, 1.25e-309),
+            (1e-300, 1e-300, 1e308, 1.25e-309),
+        )
+        for current, frequency, capacitance, expected in cases:
+            with self.subTest(current=current, frequency=frequency, capacitance=capacitance):
+                actual = triangular_current_ripple_vpp(current, frequency, capacitance)
+                self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-320))
+        pulse_cases = (
+            (1e308, 10.0, 800.0, 20.0, 6.329113924050633e304),
+            (1.0, 1.0, 1e308, 1.0, 1e-308),
+            (1e308, 1e308, 1e308, 5e307, 8.0 / 3.0),
+        )
+        for power, duration, bus, drop, expected in pulse_cases:
+            with self.subTest(power=power, duration=duration, bus=bus, drop=drop):
+                actual = minimum_capacitance_for_energy_pulse(power, duration, bus, drop)
+                self.assertTrue(math.isclose(actual, expected, rel_tol=5e-13))
 
     def test_zero_load_remains_zero(self) -> None:
         self.assertEqual(triangular_current_ripple_vpp(0.0, 10000.0, 0.0022), 0.0)
