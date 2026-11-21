@@ -6,10 +6,11 @@ import math
 import pathlib
 import sys
 import unittest
+from typing import cast
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
-from battery_thermal import ThermalParameters, analytical_step, constant_profile, simulate, write_csv
+from battery_thermal import ThermalParameters, analytical_step, constant_profile, simulate
 from dc_link import minimum_capacitance_for_energy_pulse, triangular_current_ripple_vpp
 
 
@@ -37,7 +38,9 @@ class ThermalAuditTests(unittest.TestCase):
         params = ThermalParameters()
         actual = analytical_step(25.0, 80.0, 12500.0, params)
         equilibrium = 25.0 + 80.0**2 * 0.003 / 4.0
-        self.assertAlmostEqual(equilibrium - actual, (equilibrium - 25.0) * math.exp(-10), delta=1e-12)
+        self.assertAlmostEqual(
+            equilibrium - actual, (equilibrium - 25.0) * math.exp(-10), delta=1e-12
+        )
 
     def test_very_large_current_cannot_turn_zero_resistance_into_nan(self) -> None:
         params = ThermalParameters(resistance_ohm=0.0, cooling_conductance_w_per_k=0.0)
@@ -52,11 +55,11 @@ class ThermalAuditTests(unittest.TestCase):
         for value in invalid:
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
-                    analytical_step(25.0, value, 1.0, ThermalParameters())
+                    analytical_step(25.0, cast(float, value), 1.0, ThermalParameters())
                 with self.assertRaises(ValueError):
-                    constant_profile(value, 10.0, 1.0)
+                    constant_profile(cast(float, value), 10.0, 1.0)
                 with self.assertRaises(ValueError):
-                    ThermalParameters(resistance_ohm=value).validate()
+                    ThermalParameters(resistance_ohm=cast(float, value)).validate()
 
     def test_negative_cooling_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
@@ -79,7 +82,9 @@ class DcLinkAuditTests(unittest.TestCase):
                 exact_energy = 0.5 * capacitance * (bus * bus - (bus - drop) ** 2)
                 self.assertAlmostEqual(exact_energy, 400.0, delta=1e-8)
                 approximation = 400.0 / (bus * drop)
-                self.assertAlmostEqual((capacitance - approximation) / capacitance, fraction / 2, delta=1e-11)
+                self.assertAlmostEqual(
+                    (capacitance - approximation) / capacitance, fraction / 2, delta=1e-11
+                )
 
     def test_energy_zero_is_zero_even_at_extreme_but_valid_voltage(self) -> None:
         self.assertEqual(
@@ -90,9 +95,11 @@ class DcLinkAuditTests(unittest.TestCase):
         for value in (True, None, "20", 20 + 0j, float("nan"), float("inf")):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
-                    triangular_current_ripple_vpp(value, 10000.0, 0.0022)
+                    triangular_current_ripple_vpp(cast(float, value), 10000.0, 0.0022)
                 with self.assertRaises(ValueError):
-                    minimum_capacitance_for_energy_pulse(value, 0.02, 800.0, 20.0)
+                    minimum_capacitance_for_energy_pulse(
+                        cast(float, value), 0.02, 800.0, 20.0
+                    )
 
 
 if __name__ == "__main__":
