@@ -62,7 +62,12 @@ def analytical_step(
     # Avoid the undefined IEEE-754 form infinity * zero when R is exactly zero.
     heat_w = 0.0 if current_a == 0 or resistance == 0 else current_a * current_a * resistance
     if not math.isfinite(heat_w):
-        heat_w = (current_a * math.sqrt(resistance)) ** 2
+        try:
+            heat_w = (current_a * math.sqrt(resistance)) ** 2
+        except OverflowError as error:
+            raise ValueError(
+                "thermal heat generation is not representable as a finite float"
+            ) from error
     if not math.isfinite(heat_w):
         raise ValueError("thermal heat generation is not representable as a finite float")
 
