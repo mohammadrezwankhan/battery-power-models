@@ -29,6 +29,15 @@ HOSTED_SANDBOX = Path("/usr/libexec/rezwan-native-sandbox/bin/bwrap")
 HOSTED_POLICY = Path("/etc/apparmor.d/rezwan-native-bwrap")
 
 
+def pin_opengrep_wcmatch(setup: Path) -> None:
+    """Use the same security-fixed release as the hashed scanner environment."""
+    source = setup.read_text(encoding="utf-8")
+    upstream = '"wcmatch~=8.3"'
+    if source.count(upstream) != 1:
+        raise RuntimeError("Expected exactly one upstream OpenGrep wcmatch requirement")
+    setup.write_text(source.replace(upstream, '"wcmatch==11.2"'), encoding="utf-8")
+
+
 def verify_blob(blob: bytes, expected: str) -> None:
     """Require an explicit SHA-256 before downloaded bytes can be used."""
     if re.fullmatch(r"[0-9a-f]{64}", expected) is None:
@@ -851,6 +860,7 @@ class Builder:
         validate_scanner_libraries(linked)
         wheel_output = self.work / "wheel-output"
         wheel_output.mkdir()
+        pin_opengrep_wcmatch(self.source / "cli/setup.py")
         self.command(
             "opengrep-wheel",
             [
