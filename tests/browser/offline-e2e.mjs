@@ -141,7 +141,7 @@ async function main() {
     await client.key('ArrowRight');
     assert.ok(await client.eval('Number(document.activeElement.value)') > before);
     findings.push('keyboard range slider interaction');
-    await client.eval('document.getElementById("config-button").click()');
+    await client.eval('document.getElementById("config-button").focus();document.getElementById("config-button").click()');
     assert.equal(await client.eval('document.getElementById("config-dialog").open'), true);
     assert.equal(await client.eval('document.activeElement.id'), 'close-config');
     await client.key('Escape');
