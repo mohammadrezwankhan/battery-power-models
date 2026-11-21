@@ -1,9 +1,9 @@
 # Battery Power Models — Scientific and Software Audit
 
-**Scope:** educational/early-stage engineering reference models, *not* certified hardware or safety software.  
-**Repository:** https://github.com/mohammadrezwankhan/battery-power-models  
-**Original audited main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d` (2026-11-19).  
-**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a` on PR [#52](https://github.com/mohammadrezwankhan/battery-power-models/pull/52), 2026-11-21 UTC.  
+**Scope:** educational/early-stage engineering reference models, *not* certified hardware or safety software.
+**Repository:** https://github.com/mohammadrezwankhan/battery-power-models
+**Original audited main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d` (2026-11-19).
+**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a` on PR [#52](https://github.com/mohammadrezwankhan/battery-power-models/pull/52), 2026-11-21 UTC.
 **Evidence rule:** these are completed results at the *specified source*. The subsequent documentation/release commit must independently pass its own CI; historical receipts are never substituted for a newer head.
 
 ## Executive result

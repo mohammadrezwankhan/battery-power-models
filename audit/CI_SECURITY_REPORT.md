@@ -1,7 +1,7 @@
 # CI and Supply-Chain Security Audit
 
-**Audit scope:** GitHub Actions, development dependencies, numerical tooling, browser QA, repository branch hygiene and security gates.  
-**Tested code candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`.  
+**Audit scope:** GitHub Actions, development dependencies, numerical tooling, browser QA, repository branch hygiene and security gates.
+**Tested code candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`.
 **Evidence:** [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116).
 
 ## Workflow inventory and permission boundaries

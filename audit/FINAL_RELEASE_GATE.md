@@ -1,9 +1,9 @@
 # Final Release Gate — Evidence-Based Reference-Model Readiness
 
-**Repository:** https://github.com/mohammadrezwankhan/battery-power-models  
-**Original main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`  
-**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`  
-**PR:** https://github.com/mohammadrezwankhan/battery-power-models/pull/52  
+**Repository:** https://github.com/mohammadrezwankhan/battery-power-models
+**Original main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`
+**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`
+**PR:** https://github.com/mohammadrezwankhan/battery-power-models/pull/52
 **Decision as of 2026-11-21:** **READY FOR REVIEW as an educational reference-model release candidate**, conditional on green CI at the **final exact PR head** and successful post-merge Pages deployment. No hardware/product certification claim.
 
 ## Release criteria and actual evidence

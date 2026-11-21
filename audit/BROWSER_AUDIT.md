@@ -1,7 +1,7 @@
 # Browser Lab Audit — Executed Offline, Keyboard and Responsive QA
 
-**Source:** `docs/index.html` / `docs/lesson-config.json` / `tests/browser/offline-e2e.mjs`.  
-**Verified candidate CI:** [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), browser artifact `14729600827`.  
+**Source:** `docs/index.html` / `docs/lesson-config.json` / `tests/browser/offline-e2e.mjs`.
+**Verified candidate CI:** [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), browser artifact `14729600827`.
 **Public GitHub Pages:** https://mohammadrezwankhan.github.io/battery-power-models/
 
 The browser lab contains four guided lessons based on an idealized directly specified thermal heat input, not the native default `I²R` current specification. The UI time unit is **minutes**; equations convert to SI seconds. An education checkpoint proves consistency with an analytical reference model, not physical device calibration.

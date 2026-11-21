@@ -1,8 +1,8 @@
 # Remediation and Verification Fix Log
 
-**PR:** https://github.com/mohammadrezwankhan/battery-power-models/pull/52  
-**Original main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`  
-**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`  
+**PR:** https://github.com/mohammadrezwankhan/battery-power-models/pull/52
+**Original main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`
+**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`
 **Evidence:** [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116)
 
 Each entry identifies actual root cause, correction and evidence. The status on an older commit is not automatically conferred to a later commit.
