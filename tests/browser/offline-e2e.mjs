@@ -208,7 +208,7 @@ async function main() {
     assert.equal(samples.length, 10, 'Representative text contrast sample count');
     const baseSurface = [16, 11, 24];
     function blend(raw, base) {
-      const values = raw.match(/[\\d.]+/g)?.map(Number);
+      const values = raw.match(/[\d.]+/g)?.map(Number);
       assert.ok(values && values.length >= 3, 'Unknown CSS color: ' + raw);
       const alpha = values.length >= 4 ? values[3] : 1;
       return values.slice(0, 3).map((v, i) => v * alpha + base[i] * (1 - alpha));
