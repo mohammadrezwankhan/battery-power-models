@@ -51,12 +51,14 @@ Motion is optional; the vector topology remains readable with reduced motion ena
 - [src/dc_link.py](src/dc_link.py)
 - [matlab/battery_thermal_lumped.m](matlab/battery_thermal_lumped.m)
 - [matlab/dc_link_ripple.m](matlab/dc_link_ripple.m)
+- [matlab/triangular_current_ripple_vpp.m](matlab/triangular_current_ripple_vpp.m)
+- [matlab/minimum_capacitance_for_energy_pulse.m](matlab/minimum_capacitance_for_energy_pulse.m)
 - [tests/test_models.py](tests/test_models.py)
 - [tests/test_input_validation.py](tests/test_input_validation.py)
 
 ### Explore or run the source
 
-Python 3.10+; no third-party Python dependencies. MATLAB is optional for the equivalent functions.
+Python 3.10+; no third-party Python runtime dependencies. The test suite additionally needs the declared `dev` dependency group (install with `python -m pip install --group dev`). MATLAB is optional for the equivalent functions, including standalone three- and four-argument DC-link functions alongside the original seven-argument combined interface.
 
 ```bash
 python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv

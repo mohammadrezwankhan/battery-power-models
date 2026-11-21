@@ -22,7 +22,7 @@ def test_current_python_matches_all_frozen_cases() -> None:
     assert report["passed"] is True  # noqa: S101 -- regression contract
     assert len(report["thermal"]) == 6  # noqa: S101
     assert len(report["dc_link"]) == 4  # noqa: S101
-    assert len(report["source_sha256"]) == 7  # noqa: S101
+    assert len(report["source_sha256"]) == 9  # noqa: S101
     for case in [*report["thermal"], *report["dc_link"]]:
         assert case["max_absolute_error"] == 0.0  # noqa: S101 -- exact current fixture replay
     CAPTURE.verify_capture(report, CAPTURE.capture())

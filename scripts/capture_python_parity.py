@@ -25,6 +25,8 @@ SOURCE_PATHS = (
     "src/dc_link.py",
     "matlab/battery_thermal_lumped.m",
     "matlab/dc_link_ripple.m",
+    "matlab/triangular_current_ripple_vpp.m",
+    "matlab/minimum_capacitance_for_energy_pulse.m",
     "tests/fixtures/python_matlab_parity.json",
     "scripts/capture_python_parity.py",
     "tools/security_numerical_gate.m",

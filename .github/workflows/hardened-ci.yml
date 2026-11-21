@@ -125,6 +125,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Verify complete change diff and clean checkout
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git diff --check
+          if [[ -n "$PR_BASE_SHA" ]]; then
+            git diff --check "$PR_BASE_SHA"...HEAD
+          else
+            git diff --check HEAD^ HEAD
+          fi
+          test -z "$(git status --porcelain)"
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
