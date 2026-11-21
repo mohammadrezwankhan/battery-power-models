@@ -38,7 +38,9 @@ const FIXED_QUERIES = Object.freeze({
   viewportSize: '({innerWidth:window.innerWidth,scrollWidth:document.documentElement.scrollWidth})',
 });
 async function until(callback, label) {
-  for (let i = 0; i < 120; i++) {
+  // Host virtualization can delay Chrome's DevTools port creation; always
+  // fail with actionable diagnostics rather than pretending the test passed.
+  for (let i = 0; i < 300; i++) {
     const result = await callback().catch(() => null);
     if (result) return result;
     await sleep(100);
@@ -109,7 +111,14 @@ async function main() {
     '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost',
     '--remote-allow-origins=*', '--remote-debugging-port=0',
     '--user-data-dir=' + profile, 'about:blank',
-  ], { stdio: 'ignore' });
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  let chromeDiagnostics = '';
+  processHandle.stderr?.on('data', (chunk) => {
+    chromeDiagnostics = (chromeDiagnostics + String(chunk)).slice(-4000);
+  });
+  processHandle.on('error', (error) => {
+    chromeDiagnostics = (chromeDiagnostics + String(error)).slice(-4000);
+  });
   let client;
   try {
     const port = await until(async () => {
@@ -204,6 +213,12 @@ async function main() {
     await mkdir(folder, { recursive: true });
     await writeFile(join(folder, 'browser-offline-qa.json'), JSON.stringify(evidence, null, 2) + '\n');
     console.log(JSON.stringify(evidence));
+  } catch (error) {
+    throw new Error(
+      String(error) + '; chromeExit=' + String(processHandle.exitCode) +
+      '; chromeStderr=' + chromeDiagnostics,
+      { cause: error },
+    );
   } finally {
     client?.ws.close();
     processHandle.kill('SIGTERM');
