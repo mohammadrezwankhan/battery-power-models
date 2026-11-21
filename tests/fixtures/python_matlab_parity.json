@@ -2,7 +2,7 @@
   "schema_version": 1,
   "source_commit": "0aa21fe47a396e75c90497d223172c008007ee28",
   "fixture_origin": "Python baseline execution only; MATLAB parity requires actual MATLAB test execution.",
-  "relative_tolerance": 1e-09,
+  "relative_tolerance": 1e-12,
   "absolute_tolerance": 1e-12,
   "thermal": [
     {

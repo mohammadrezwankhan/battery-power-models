@@ -46,6 +46,13 @@ def test_changed_source_missing_case_and_changed_value_cannot_verify() -> None:
             CAPTURE.verify_capture(changed, original)
 
 
+def test_parity_bound_uses_one_part_per_trillion_for_well_scaled_values() -> None:
+    near = CAPTURE.compare([1.0 + 5e-13], [1.0])
+    beyond = CAPTURE.compare([1.0 + 3e-12], [1.0])
+    assert near["passed"] is True  # noqa: S101 -- inside tightened tolerance
+    assert beyond["passed"] is False  # noqa: S101 -- outside tightened tolerance
+
+
 def test_comparison_retains_errors_and_near_zero_bound() -> None:
     report = CAPTURE.compare([5e-13, 1.000000002], [0.0, 1.0])
     assert report["passed"] is False  # noqa: S101 -- outside the relative bound

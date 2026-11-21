@@ -13,7 +13,7 @@ classdef TestPythonParity < matlab.unittest.TestCase
                 'tests', 'fixtures', 'python_matlab_parity.json')));
             fixture = testCase.Fixture;
             testCase.assertEqual(fixture.schema_version, 1);
-            testCase.assertEqual(fixture.relative_tolerance, 1e-9);
+            testCase.assertEqual(fixture.relative_tolerance, 1e-12);
             testCase.assertEqual(fixture.absolute_tolerance, 1e-12);
             testCase.assertNumElements(fixture.thermal, 6);
             testCase.assertNumElements(fixture.dc_link, 4);
