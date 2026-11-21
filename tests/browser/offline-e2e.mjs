@@ -257,9 +257,12 @@ main().catch(async (error) => {
   console.error('Mandatory browser QA failed:', error.stack ?? error);
   const folder = join(root, 'hardening-artifacts');
   await mkdir(folder, { recursive: true });
+  // Do not persist raw network URLs, exceptions or browser-controlled text
+  // into CI artifacts. The full failure diagnostics are already in job logs.
   await writeFile(join(folder, 'browser-offline-qa.json'), JSON.stringify({
-    status: 'failed', checksPassedBeforeFailure: findings,
-    error: String(error), externalRequests: remoteRequests, exceptions: scriptErrors,
+    status: 'failed',
+    checksPassedBeforeFailure: findings,
+    failureKind: error instanceof assert.AssertionError ? 'assertion' : 'execution',
   }, null, 2) + '\n');
   process.exitCode = 1;
 });

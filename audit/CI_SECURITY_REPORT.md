@@ -18,6 +18,15 @@
 
 Actions use pinned full commit SHAs; top-level token scope is typically `contents: read`. CodeQL requires job-limited `security-events: write`, GitHub Pages publish uses job-limited `pages: write` and `id-token: write`. No use of untrusted `pull_request_target` plus code execution was found. The new browser gate disables external networking at Chromium's CDP layer and enforces no HTTP(S) requests. Its test script uses only static source-defined evaluation probes, not arbitrary runtime input.
 
+## PR review security follow-up
+
+A GitHub Advanced Security review reported a data-flow risk in the browser test's
+failure-artifact writer. The corrected test no longer serializes raw CDP network
+URLs, exception descriptions or browser-controlled strings into uploaded
+failure evidence. It records a fixed status and trusted checkpoint labels;
+full diagnostic messages stay in the private job log. The review thread must
+be rechecked after a fresh CodeQL run, not dismissed without verification.
+
 ## Real software and security results
 
 At candidate `3b6100...` the hardened matrix passed **14/14 jobs**: security workflow, secrets, SAST, dependencies, Trivy; quality Python lint/types/tests, browser lint/types/tests/format; MATLAB R2026a numerical gate; and new real Chrome offline/accessibility QA. GitHub CodeQL, Python validation, authorship and documentation/model workflows also passed. Source and test fixtures were not weakened to turn red CI green.
