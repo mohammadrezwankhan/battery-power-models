@@ -120,6 +120,35 @@ class ThermalAuditTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             analytical_step(25.0, 10**400, 1.0, ThermalParameters())
 
+    def test_extreme_heat_product_reports_a_finite_range_error(self) -> None:
+        params = ThermalParameters(resistance_ohm=1e308)
+        with self.assertRaisesRegex(ValueError, "heat generation is not representable"):
+            analytical_step(25.0, 1e308, 1.0, params)
+
+    def test_quasi_adiabatic_underflow_retains_subnormal_heat(self) -> None:
+        params = ThermalParameters(
+            resistance_ohm=1.0,
+            thermal_capacitance_j_per_k=1e308,
+            cooling_conductance_w_per_k=math.ulp(0.0),
+            ambient_c=0.0,
+        )
+        # (Q/C)*dt underflows, but Q*dt/C=1e-300 is finite and representable.
+        actual = analytical_step(0.0, 1e-150, 1e308, params)
+        self.assertTrue(math.isclose(actual, 1e-300, rel_tol=1e-12))
+
+    def test_finite_heat_can_cause_unrepresentable_adiabatic_temperature(self) -> None:
+        params = ThermalParameters(
+            resistance_ohm=1.0,
+            thermal_capacitance_j_per_k=1.0,
+            cooling_conductance_w_per_k=0.0,
+        )
+        with self.assertRaisesRegex(ValueError, "thermal update is not representable"):
+            analytical_step(0.0, 1e154, 10.0, params)
+
+    def test_nonempty_simulation_requires_positive_interval(self) -> None:
+        with self.assertRaisesRegex(ValueError, "dt_s must be positive"):
+            simulate([80.0], 0.0, ThermalParameters())
+
     def test_boolean_and_nonreal_numbers_are_rejected(self) -> None:
         invalid = (True, False, None, "1", 1 + 0j, math.nan, math.inf, -math.inf)
         for value in invalid:
