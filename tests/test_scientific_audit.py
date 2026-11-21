@@ -94,6 +94,32 @@ class ThermalAuditTests(unittest.TestCase):
         self.assertTrue(math.isfinite(actual))
         self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12))
 
+    def test_quasi_adiabatic_extreme_cooling_has_finite_weighted_state(self) -> None:
+        params = ThermalParameters(resistance_ohm=0.0, ambient_c=1e308)
+        dt = 1e-5
+        x = 4.0 * dt / 5000.0
+        expected = -1e308 * math.exp(-x) + 1e308 * (-math.expm1(-x))
+        actual = analytical_step(-1e308, 0.0, dt, params)
+        self.assertTrue(math.isclose(actual, expected, rel_tol=1e-12))
+
+    def test_subnormal_cooling_limit_and_stiff_step(self) -> None:
+        quasi = ThermalParameters(cooling_conductance_w_per_k=math.ulp(0.0))
+        expected = 25.0 + 80.0**2 * 0.003 * 10.0 / 5000.0
+        self.assertAlmostEqual(analytical_step(25.0, 80.0, 10.0, quasi), expected)
+        stiff = ThermalParameters(
+            resistance_ohm=0.0,
+            cooling_conductance_w_per_k=1e308,
+            thermal_capacitance_j_per_k=1e308,
+            ambient_c=15.0,
+        )
+        self.assertEqual(analytical_step(40.0, 0.0, 1e308, stiff), 15.0)
+
+    def test_huge_integer_input_has_consistent_validation_error(self) -> None:
+        with self.assertRaises(ValueError):
+            ThermalParameters(resistance_ohm=10**400).validate()
+        with self.assertRaises(ValueError):
+            analytical_step(25.0, 10**400, 1.0, ThermalParameters())
+
     def test_boolean_and_nonreal_numbers_are_rejected(self) -> None:
         invalid = (True, False, None, "1", 1 + 0j, math.nan, math.inf, -math.inf)
         for value in invalid:

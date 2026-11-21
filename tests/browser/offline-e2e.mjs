@@ -23,6 +23,20 @@ const chrome = [
 const scriptErrors = [];
 const remoteRequests = [];
 const findings = [];
+const FIXED_QUERIES = Object.freeze({
+  isReady: 'document.readyState==="complete" && document.querySelectorAll("#module-tabs [role=tab]").length===4',
+  scheme: 'location.protocol',
+  moduleChecks: '(() => {const values=[]; for(let i=0;i<4;i++){document.getElementById("module-tab-"+i).click();document.getElementById("preset-button").click();document.getElementById("check-button").click();values.push({status:document.getElementById("check-status").textContent, rows:[...document.querySelectorAll("#checks .check-row")].map(r=>r.className)});}return values})()',
+  focusModule0: 'document.getElementById("module-tab-0").focus()',
+  focusedId: 'document.activeElement.id',
+  focusSliderAndValue: '(() => {const s=document.querySelector("#sliders input[type=range]");s.focus();return Number(s.value)})()',
+  activeSliderValue: 'Number(document.activeElement.value)',
+  openConfig: 'document.getElementById("config-button").focus();document.getElementById("config-button").click()',
+  dialogOpen: 'document.getElementById("config-dialog").open',
+  exportCsv: '(async()=>{const original=URL.createObjectURL;let saved;URL.createObjectURL=(blob)=>{saved=blob;return original.call(URL,blob)};try{document.getElementById("csv-button").click();const text=await saved.text();const rows=text.trim().split(/\\r?\\n/).map(r=>r.split(","));return {header:rows[0],count:rows.length-1,first:rows[1],last:rows.at(-1)}}finally{URL.createObjectURL=original}})()',
+  reducedMotion: '({enabled:matchMedia("(prefers-reduced-motion: reduce)").matches,scroll:getComputedStyle(document.documentElement).scrollBehavior,transform:getComputedStyle(document.querySelector(".hero-art")).transform})',
+  viewportSize: '({innerWidth:window.innerWidth,scrollWidth:document.documentElement.scrollWidth})',
+});
 async function until(callback, label) {
   for (let i = 0; i < 120; i++) {
     const result = await callback().catch(() => null);
@@ -60,9 +74,14 @@ class CDP {
       this.ws.send(JSON.stringify({ id, method, params }));
     });
   }
-  async eval(expression) {
+  async query(name) {
+    // CDP executes only these audited, immutable test probes. No browser,
+    // network or user-supplied expression can enter this API.
+    if (!Object.hasOwn(FIXED_QUERIES, name)) {
+      throw new Error('Unknown fixed browser QA probe');
+    }
     const reply = await this.call('Runtime.evaluate', {
-      expression, returnByValue: true, awaitPromise: true,
+      expression: FIXED_QUERIES[name], returnByValue: true, awaitPromise: true,
     });
     if (reply.exceptionDetails) throw new Error(JSON.stringify(reply.exceptionDetails));
     return reply.result?.value;
@@ -117,39 +136,39 @@ async function main() {
     });
     await client.call('Page.navigate', { url: pathToFileURL(source).href });
     assert.ok(await until(
-      () => client.eval('document.readyState==="complete" && document.querySelectorAll("#module-tabs [role=tab]").length===4'),
+      () => client.query('isReady'),
       'offline file:// modules',
     ));
-    assert.equal(await client.eval('location.protocol'), 'file:');
+    assert.equal(await client.query('scheme'), 'file:');
     findings.push('network-offline file:// page load');
-    const checks = await client.eval('(() => {const values=[]; for(let i=0;i<4;i++){document.getElementById("module-tab-"+i).click();document.getElementById("preset-button").click();document.getElementById("check-button").click();values.push({status:document.getElementById("check-status").textContent, rows:[...document.querySelectorAll("#checks .check-row")].map(r=>r.className)});}return values})()');
+    const checks = await client.query('moduleChecks');
     assert.equal(checks.length, 4);
     for (const [index, item] of checks.entries()) {
       assert.equal(item.status, '2 / 2 passed', 'Module ' + (index + 1));
       assert.deepEqual(item.rows, ['check-row pass', 'check-row pass']);
     }
     findings.push('four module presets and eight successful checkpoint decisions');
-    await client.eval('document.getElementById("module-tab-0").focus()');
+    await client.query('focusModule0');
     await client.key('ArrowRight');
-    assert.equal(await client.eval('document.activeElement.id'), 'module-tab-1');
+    assert.equal(await client.query('focusedId'), 'module-tab-1');
     await client.key('End');
-    assert.equal(await client.eval('document.activeElement.id'), 'module-tab-3');
+    assert.equal(await client.query('focusedId'), 'module-tab-3');
     await client.key('Home');
-    assert.equal(await client.eval('document.activeElement.id'), 'module-tab-0');
+    assert.equal(await client.query('focusedId'), 'module-tab-0');
     findings.push('module keyboard arrow, End and Home navigation');
-    const before = await client.eval('(() => {const s=document.querySelector("#sliders input[type=range]");s.focus();return Number(s.value)})()');
+    const before = await client.query('focusSliderAndValue');
     await client.key('ArrowRight');
-    assert.ok(await client.eval('Number(document.activeElement.value)') > before);
+    assert.ok(await client.query('activeSliderValue') > before);
     findings.push('keyboard range slider interaction');
-    await client.eval('document.getElementById("config-button").focus();document.getElementById("config-button").click()');
-    assert.equal(await client.eval('document.getElementById("config-dialog").open'), true);
-    assert.equal(await client.eval('document.activeElement.id'), 'close-config');
+    await client.query('openConfig');
+    assert.equal(await client.query('dialogOpen'), true);
+    assert.equal(await client.query('focusedId'), 'close-config');
     await client.key('Escape');
     await sleep(25);
-    assert.equal(await client.eval('document.getElementById("config-dialog").open'), false);
-    assert.equal(await client.eval('document.activeElement.id'), 'config-button');
+    assert.equal(await client.query('dialogOpen'), false);
+    assert.equal(await client.query('focusedId'), 'config-button');
     findings.push('accessible dialog open, Escape and focus restoration');
-    const csv = await client.eval('(async()=>{const original=URL.createObjectURL;let saved;URL.createObjectURL=(blob)=>{saved=blob;return original.call(URL,blob)};try{document.getElementById("csv-button").click();const text=await saved.text();const rows=text.trim().split(/\\r?\\n/).map(r=>r.split(","));return {header:rows[0],count:rows.length-1,first:rows[1],last:rows.at(-1)}}finally{URL.createObjectURL=original}})()');
+    const csv = await client.query('exportCsv');
     assert.equal(csv.count, 241);
     assert.equal(csv.header[0], 'model_time_min');
     assert.ok(csv.header.includes('temperatureC'));
@@ -159,7 +178,7 @@ async function main() {
     await client.call('Emulation.setEmulatedMedia', {
       features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
     });
-    const motion = await client.eval('({enabled:matchMedia("(prefers-reduced-motion: reduce)").matches,scroll:getComputedStyle(document.documentElement).scrollBehavior,transform:getComputedStyle(document.querySelector(".hero-art")).transform})');
+    const motion = await client.query('reducedMotion');
     assert.equal(motion.enabled, true);
     assert.equal(motion.scroll, 'auto');
     assert.equal(motion.transform, 'none');
@@ -170,7 +189,7 @@ async function main() {
         width, height: 850, deviceScaleFactor: 1, mobile: width < 768,
       });
       await sleep(70);
-      const size = await client.eval('({innerWidth:window.innerWidth,scrollWidth:document.documentElement.scrollWidth})');
+      const size = await client.query('viewportSize');
       viewports.push({ width, ...size });
       assert.ok(size.scrollWidth <= size.innerWidth + 2, 'Horizontal overflow at '+width+'px: '+JSON.stringify(size));
     }
