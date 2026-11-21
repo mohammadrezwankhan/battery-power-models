@@ -1,84 +1,57 @@
-# Numerical Physics, Boundaries, and Python/MATLAB Parity
+# Numerical Verification and Python/MATLAB Parity
 
-## Follow-up execution receipts and underflow limit (2026-11-21)
+**Verified candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`; [MATLAB CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), artifact `14728913347`. Actual MATLAB release: **R2026a**. The CI checkout is a synthetic PR merge commit; this is source evidence for the linked PR head, not a separate release.
 
-The actual MATLAB R2026a report from workflow 44945582567, artifact 14724000147, was inspected: `test_count=10`, `failed_count=0`, `incomplete_count=0`, `code_issues=[]`, `suppressed_issues=[]`, `parity_verified=true`, `same_run_python_verified=true`, six thermal and four DC-link cases, all baseline and same-run Python maximum absolute errors **zero**. CI checked the PR's synthetic merge commit `94600b433e4feab2af741e7698d7ddff2e7a1619` against head `2c636e8a5e8eff96fcef8620786eec0f2453d6f2`. Thus the prior-snapshot statement that complete MATLAB tests were pending has been superseded **for that particular source snapshot**, not for later changes.
+## Physical contracts and independent derivation
 
-Independent boundary challenge after that pass: numerical `I*I*R` evaluates as 0 in binary64 for `I=1e-200`, `R=1e308` although mathematical heat is 1e-92 W. At `C=1e-100`, `G=0`, `dt=1`, correct temperature rise is 1e8 K. Also `heat/C` can underflow to zero even though `(heat*dt)/C` is subnormal nonzero: `I=1e-150`, `R=1`, `C=1e308`, `dt=1e308`, giving 1e-300 K. New Python/MATLAB fallback scaling and test cases are committed at `48c5db29ff8929698746754a7d9cdd72054966f7`; final new-source MATLAB execution is still required. These are mathematical range fixtures, not realistic engineering conditions.
+### Thermal
 
-Repository baseline SHA `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. Purpose: independently check implemented model contracts without using one implementation as the only oracle.
+Constant-parameter one-node balance: `C_th dT/dt=I²R−G(T−T_a)`, heat `Q=I²R`, conductance `G=hA` in W/K. For `G>0` and constant current:
 
-## Thermal derivation
+`T_{k+1} = T_a + Q/G + (T_k−T_a−Q/G) exp(−GΔt/C_th)`.
 
-`C_th dT/dt = I²R − G(T−T_a)`, with `G=hA` W/K, constant I and parameters within each interval. If `G>0`:
+When `G=0`, exactly `T_{k+1}=T_k+QΔt/C_th`. Near G=0 compute the cooling fraction `−expm1(−x)` for `x=GΔt/C_th`, avoiding subtraction of almost equal floating-point values. For opposite extreme input temperatures or an unrepresentably large *formal* equilibrium, use the mathematically equivalent weighted transient (not a different differential equation). Avoid underflow in the intermediate `I²R` and `Q/C_th` calculation where the final state is representable.
 
-`T_next = T_a + I²R/G + (T_prev−T_a−I²R/G) exp(−G dt/C_th)`.
+Independent ordinary fixture: `I=80 A, R=0.003 Ω, C_th=5000 J/K, G=4 W/K, T_a=T_0=25°C`. Then Q=19.2 W, `T_ss=29.8°C`, `τ=1250s`, `T(900s)=25+4.8(1−exp(−900/1250))`, adiabatic 10s gives `25.0384°C`, passive cooling 40°C→`25+15/e ≈30.5182°C` after one τ. Mathematical integral energy balance: `C_th ΔT = ∫Q dt − G∫(T−T_a)dt`.
 
-Equivalent cancellation-resistant form for small x=Gdt/C: `T_next = T_prev + (T_a−T_prev)(−expm1(−x)) + (I²R/C)dt ((−expm1(−x))/x)`. At x=0 use the exact analytic limit `T_next = T_prev + I²R dt/C_th`. No Forward Euler approximation is substituted.
+Adversarial stress results, not physically plausible batteries: `I=1e−200, R=1e308, C_th=1e−100, G=0, dt=1` yields representable `ΔT=1e8`; a separate underflow ordering case yields `1e−300`. Extreme opposite temperatures and overflowed equilibrium are verified against independent exponential weighted-state calculations.
 
-Input: `I=80 A`, `R=0.003 Ω`, `C_th=5000 J/K`, `G=4 W/K`, `T_a=T0=25 °C`.
-- Joule power: 19.2 W.
-- Equilibrium: 29.8 °C.
-- Thermal time constant: 1250 seconds.
-- Temperature after 900 s: about 27.4636 °C, using the exact exponential.
-- Adiabatic at 10 s: exactly 25.0384 °C.
-- Passive cooling from 40 °C after 1250 s: `25+15/e ≈30.5181916 °C`.
-- After 10 time constants at 80 A: `29.8−4.8 exp(−10)` °C.
-- At constant input, one 10-second step and ten 1-second steps have the same mathematical closed-form result; tests use floating-point tolerances.
-- The physical integrated energy balance is `C (T_next−T_prev) = Q dt − G ∫(T−T_a)dt`, not simply `Qdt` unless G=0.
+### DC-link
 
-## DC-link assumptions and exact identities
+The **ideal symmetric zero-mean triangular capacitor-current** assumption yields `ΔV_pp=ΔI_pp/(8 f_sw C)`, not a universal inductor-current or arbitrary inverter PWM relationship. For 20 A peak-to-peak, 10 kHz and 2.2 mF, `ΔV_pp = 0.11363636363636363 V`. Doubling capacitance or frequency halves ripple.
 
-Ideal zero-mean symmetric triangular **capacitor-current** waveform at frequency `f_sw`, with peak-to-peak current `ΔI_pp`, gives `ΔV_pp = ΔI_pp/(8 f_sw C)`. This is not a universal inverter PWM ripple expression. Baseline 20 A, 10 kHz and 2.2 mF yields `0.11363636363636363 Vpp`. Doubling C or f halves ripple; doubling ΔI doubles it.
+Constant-power ideal capacitor hold-up obeys `(1/2)C(V²−(V−d)²)=Pt`; solve exactly to obtain `C=2Pt/[d(2V−d)` for `0<d<V`. At P=20 kW, duration=.02s, V=800V, d=20V: `C=0.02531645569620253 F`. The small-drop approximation `Pt/(Vd)` underestimates the exact capacitance by `d/(2V)` relative to the exact value (1.25% in this example); that approximation is not used in source. ESR/ESL and component/hardware nonidealities are excluded and clearly labeled.
 
-For a capacitor supplying a constant-power ideal load `P` for `t`, initial voltage `V` and allowed drop `d`, `0<d<V`:
+## Cross-language live result
 
-`C = 2Pt/[d(2V−d)`.
+Fixed shared fixture: `tests/fixtures/python_matlab_parity.json`, 6 thermal (ambient, constant heating, cooling, signed current, zero resistance, time constant) and 4 DC (reference, zero load, small drop, large capacitance) cases. MATLAB `TestPythonParity.m` and same-run Python capture independently execute reference functions and compare to the immutable numerical values. Two API-specific MATLAB regression methods also test new standalone DC helper functions.
 
-For 20 kW for 0.02 s, 800 V bus, 20 V drop: `C=0.02531645569620253 F`. Small-signal approximate `C_approx = Pt/(Vd) = 0.025 F`; relative underestimation against exact `(C−C_approx)/C=d/(2V)=1.25%`. Exact identity: `0.5C(V²−(V−d)²)=Pt`.
+| Measurement | Observed |
+|---|---:|
+| MATLAB test count | **15** |
+| MATLAB failed / incomplete | 0 / 0 |
+| MATLAB analyzer findings / suppressions | 0 / 0 |
+| Thermal parity cases | 6/6 |
+| DC parity cases | 4/4 |
+| Maximum MATLAB-vs-fixture absolute error | **0.0** |
+| Maximum MATLAB-vs-same-run-Python absolute error | **0.0** |
+| Relative comparison tolerance | **1e-12** |
+| Absolute comparison tolerance | **1e-12** |
+| `parity_verified`, `same_run_python_verified`, `passed` | true / true / true |
 
-| Drop fraction of bus | Approximation undersizing relative to exact |
-|---:|---:|
-| 0.1% | 0.05% |
-| 1% | 0.5% |
-| 5% | 2.5% |
-| 10% | 5% |
-| 25% | 12.5% |
-| 50% | 25% |
-| 99.9% | 49.95% |
+The standard-library reference code remains valid for Python 3.10 and 3.12 (both executed in separate GitHub jobs). Do not describe close IEEE-754 outputs as *guaranteed* bit-for-bit across all possible numerical architectures; the zero differences above apply to the particular deterministic fixture and tested R2026a/CPython environment.
 
-ESR, ESL, frequency dependence, capacitor tolerance, ripple heating, nonideal inverter waveforms, source replenishment, control limits and hardware qualification are not included.
+## Signatures and validation
 
-## Extended extreme-valid values
+Python `triangular_current_ripple_vpp(i_pp,f_sw,C)` and `minimum_capacitance_for_energy_pulse(P,t,V,d)` return scalar floats, reject invalid types and domain, and preserve exact zero-load results. MATLAB now provides matching standalone functions under `matlab/` with the same parameter meanings, plus the original backward-compatible `dc_link_ripple(i_pp,f_sw,C,P,t,V,d)` returning a structure with `ripple_vpp` and `minimum_capacitance_f`. MATLAB's argument conversion and error identifiers are documented at the source level; no claim of byte-identical exception messages is made.
 
-Earlier code falsely rejected physically representable results due to intermediate IEEE-754 overflow. The audit branch retains direct multiplication for well-scaled results and uses equivalent logarithmically factorized positive-domain evaluation **only when direct intermediates or outputs are invalid**. Such factorization introduces rounding and is not claimed bit-for-bit equal to an arbitrary-precision oracle.
+## Evidence and reproducibility
 
-| Calculation | Inputs | Independent exact/scale result | Status |
-|---|---|---:|---|
-| Ripple | `i=1, f=1e308, C=1` | `1.25e-309 Vpp` | added Python + MATLAB boundary tests, final CI pending |
-| Ripple | `i=1e308, f=1e308, C=1e308` | `1.25e-309 Vpp` | added Python boundary test, final CI pending |
-| Ripple | `i=1e-300, f=1e-300, C=1e308` | `1.25e-309 Vpp` | added Python boundary test, final CI pending |
-| Energy | `P=1e308, t=10, V=800, d=20` | `6.329113924050633e304 F` | added Python/MATLAB tests, final CI pending |
-| Energy | `P=1, t=1, V=1e308, d=1` | `1e-308 F` | added Python test, final CI pending |
-| Energy | `P=1e308, t=1e308, V=1e308, d=5e307` | `8/3 F` | added Python/MATLAB tests, final CI pending |
+- [MATLAB numerical CI run](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), evidence artifact `14728913347`: source hashes and same-run Python receipts in addition to MATLAB report.
+- `python -m unittest discover -s tests -v`
+- `python -m pytest -q`
+- `python scripts/capture_python_parity.py --output hardening-artifacts/python-parity.json`
+- MATLAB: `addpath('tools'); security_numerical_gate`
+- Actual source code: `src/battery_thermal.py`, `src/dc_link.py`, `matlab/battery_thermal_lumped.m`, `matlab/triangular_current_ripple_vpp.m`, `matlab/minimum_capacitance_for_energy_pulse.m`.
 
-Genuine unrepresentable outputs remain explicit errors, not hidden zero or infinity. Legitimate zero current/power/pulse returns exact zero after full input-domain validation. Actual physical component realism at enormous inputs is outside educational scope; these are representability tests, not candidate hardware designs.
-
-## Cross-language fixture and execution facts
-
-Existing immutable fixture `tests/fixtures/python_matlab_parity.json` has six thermal cases (ambient, constant heating, cooling, signed current, zero resistance, time constant) and four combined DC cases (reference, zero load, small drop, large capacitance). Project fixture comparison uses absolute 1e-12 + relative 1e-9 times expected magnitude. Requested more stringent scientific comparison target for comparable well-scaled cases is relative ≤1e-12 with suitable units-dependent absolute tolerance; **existing automated parity tolerance has NOT been silently tightened or claimed to meet the stronger target**.
-
-The GitHub Hardened CI MATLAB R2026a same-run gate `tools/security_numerical_gate.m` captures current Python outputs, executes MATLAB fixture suite, compares MATLAB to original fixture and same-run Python outputs, and records checksums. An intermediate 2026-11-21 run reported its two legacy MATLAB parity tests passing, while two newly introduced MATLAB regressions were incorrectly asserting trace shape / MATLAB error identifier and failed. Both test assertions were corrected; fresh final MATLAB execution is required. Do not label MATLAB full suite PASS until the latest run returns success.
-
-Python tests: `tests/test_models.py`, `tests/test_input_validation.py`, `tests/test_physical_properties.py`, `tests/test_numeric_boundaries.py`, `tests/test_scientific_audit.py` and deterministic Hypothesis generated tests. `tests/test_python_parity_capture.py` is pytest-based and not discovered by pure unittest.
-
-## API contract differences
-
-Python: `triangular_current_ripple_vpp(current_pp_a, switching_hz, capacitance_f)` and `minimum_capacitance_for_energy_pulse(power_w, pulse_s, bus_v, allowed_drop_v)`.
-MATLAB: `dc_link_ripple(current_pp_a, switching_hz, capacitance_f, power_w, pulse_s, bus_v, allowed_drop_v)`, returns a structure with two outputs. The latter requires all seven parameters even if only one output is desired, and MATLAB may coerce scalar numeric input types to double via arguments validation. This compatibility friction remains open, not a silently changed API. Dedicated small backward-compatible MATLAB helper functions are a possible follow-up.
-
-## Executed vs not executed
-
-- **Executed**: completed 2026-11-21 GitHub Python validation and legacy MATLAB parity jobs on earlier audit revisions; live browser checkpoint-independent arithmetic.
-- **Awaiting or blocked**: final SHA MATLAB and extra extreme-range tests, direct MATLAB on this local container (no MATLAB license/runtime), Python 3.10 runner matrix (current actions Python 3.12), local git worktree tests and offline browser file:// QA.
-- Never describe source-only MATLAB review as MATLAB execution; see actual CI: https://github.com/mohammadrezwankhan/battery-power-models/actions
+All results are synthetic engineering reference calculations; no real pack, cell or capacitor qualification is implied.

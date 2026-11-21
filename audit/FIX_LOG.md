@@ -1,46 +1,32 @@
-# Remediation Fix Log
+# Remediation and Verification Fix Log
 
-## Post-integration scientific boundary fix (additional)
+**PR:** https://github.com/mohammadrezwankhan/battery-power-models/pull/52  
+**Original main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`  
+**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`  
+**Evidence:** [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116)
 
-**TH-03 — Intermediate underflow erases physically representable thermal increment** (High, source reproducible; regression verification pending): independent floating-point falsification found `I=1e-200, R=1e308, C=1e-100, G=0, dt=1, T0=0`. Mathematically `I²R/C × dt = 1e8`, but the sequential `I*I*R` evaluates to zero. The same error arises when `heat/C` underflows before multiplication by a large `dt`. Code changes in `src/battery_thermal.py` and `matlab/battery_thermal_lumped.m` now recover the representable result using rescaled multiplication. Regression tests added in `tests/test_scientific_audit.py` and `matlab/tests/TestReferenceModels.m`, including an independently expected `1e-300` adiabatic increment. Native parity must be revalidated on the latest source SHA.
+Each entry identifies actual root cause, correction and evidence. The status on an older commit is not automatically conferred to a later commit.
 
-**Earlier MATLAB and dependency verification:** GitHub Actions run 44945582567 passed 10 MATLAB tests (0 failed/incomplete), six thermal/four DC parity cases with zero absolute error and no analyzer findings; dependency artifact 14723890760 passed with `wcmatch 11.2` and no CVEs. These receipts apply to the preceding code commit, not the new TH-03 correction.
+| ID | Original issue and root cause | Corrective files | Regression verification |
+|---|---|---|---|
+| TH01 | `G=0` rejected because solver divided by conductance | `src/battery_thermal.py`, `matlab/battery_thermal_lumped.m` | Exact adiabatic 25.0384°C, 10×1s vs 1×10s |
+| TH02 | `T_ss+(T−T_ss)e^(−x)` cancels near `G→0` | Same sources | Tiny-positive conductance and subnormal tests |
+| TH03 | `I*I*R` / `heat/C` intermediate underflow erased finite output | Same sources | Python/MATLAB expected 1e8 and 1e-300 boundary |
+| TH04 | Finite time response rejected when formal equilibrium/temp difference overflowed | Same sources, `tests/test_scientific_audit.py`, `matlab/tests/TestReferenceModels.m` | Intentionally failing tests 44959000832 then corrected; independent weighted exponential |
+| DC01 | Ripple and capacitor hold-up intermediates overflowed/underflowed | `src/dc_link.py`, `matlab/dc_link_ripple.m` | 0.113636 Vpp, exact 0.0253164557 F, extreme finite cases |
+| IN01 | Boolean and non-real numerics slipped through Python `math.isfinite` | `src/battery_thermal.py`, `src/dc_link.py` | Adversarial invalid-type tests |
+| IN02 | Empty current vector and invalid duration contracts inconsistent | `src/battery_thermal.py`, MATLAB source, regression tests | Explicit nonempty rejection; N+1 CSV contract |
+| IN03 | Extreme heat fallback raised `OverflowError` unexpectedly | `src/battery_thermal.py` | Initially failing CLI/boundary run 44944604763, corrected later |
+| PA01 | Ripple-only MATLAB call required unrelated four dummy inputs | `matlab/triangular_current_ripple_vpp.m`, `matlab/minimum_capacitance_for_energy_pulse.m`, legacy combined delegation | MATLAB 15/15 suite, dedicated API boundary/zero tests |
+| PA02 | Old 1e-9 cross-language tolerance weaker than scientific target | `tests/fixtures/python_matlab_parity.json`, Python capture, MATLAB gate/tests | 1e-12 relative/absolute, 10 baseline & same-run outputs equal |
+| SEC01 | Scanner `wcmatch` dependency CVE | `.github/security/requirements.in`, `requirements.txt` | Real successful dependency security job, no suppression |
+| QA01 | Browser offline and responsive claims unexecuted | `tests/browser/offline-e2e.mjs`, `.github/workflows/hardened-ci.yml` | GitHub Chrome `file://` offline, 8 checks, real CSV, 4 widths, reduced motion |
+| QA02 | Test harness synthetic keyboard event/focus misuse | `tests/browser/offline-e2e.mjs` | Escape and restored focus tested by real CDP browser |
+| QA03 | Test script unbounded evaluation flagged by Semgrep | Same test source | Fixed query allowlist; actual SAST passed |
+| QA04 | Core branch coverage dropped under required 95% | `tests/test_scientific_audit.py` | Real quality gate 98.96% branches, not lowered threshold |
+| QA05 | Intermittent Chrome startup timeout concealed runner diagnostics | `tests/browser/offline-e2e.mjs` | Extended bounded startup, stderr/exits captured; no skip |
+| COMP01 | Latest Hypothesis cannot install on Python 3.10 | `pyproject.toml`, `.github/workflows/python-validation.yml` | Python 3.10 and 3.12 CI both passed |
+| DOC01 | Model waveform, thermal scope and verification documentation incomplete | `README.md`, `docs/math-and-physics/`, `audit/` | Source-linked reviewed docs with no hardware claims |
+| GOV01 | Branch cleanup based on stale reported 13 branches unsafe | `audit/BRANCH_HYGIENE_REPORT.md` | Counted 30 baseline branches via GitHub; no deletion |
 
-All changes were applied to isolated GitHub branch `audit/scientific-verification-20261121` via draft PR #52 against unchanged main baseline `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. A proposed patch is not a validated fix until its final integration gate passes.
-
-| Finding | Root cause / before | Applied correction | Regression and verification | Compatibility |
-|---|---|---|---|---|
-| TH-01: adiabatic rejected | G=0 disallowed and division by G in native Python/MATLAB | explicit exact `T+=I²R dt/C` branch; permit G≥0 | `tests/test_scientific_audit.py`, `matlab/tests/TestReferenceModels.m`; Python tests passed intermediate head; final MATLAB pending | extends valid domain without breaking old positive-G API |
-| TH-02: near-zero cancellation | subtraction of huge steady-state values obscured small temperature change | `-expm1(-x)` stabilization for x<1e-6 in Python/MATLAB, old expression retained for well-scaled x | high-precision adiabatic limit test and Python time-composition regression; intermediate Python passed | small floating-point rounding differences acceptable |
-| IN-01: invalid types | `math.isfinite(True)` and implicit bool numeric coercion | explicit finite-real int/float guard; reject booleans, None, complex and string before arithmetic | adversarial Python tests passed intermediate CI | strings as numbers no longer accepted by direct API; CLI still parses numeric strings explicitly |
-| IN-02: empty sequence | simulate([]) returned only initial state silently | enforce nonempty supplied current vector in Python and MATLAB | `test_nonempty_profile_required`, MATLAB empty case; final MATLAB pending | deliberate invalid-input contract clarification |
-| IN-03: Python OverflowError from fallback | `(current * sqrt(R))**2` raised OverflowError beyond binary64 | catch and rethrow documented informative ValueError, preserving intended error contract | initial failing CI run 44944604763 then corrected green Python validation 44944689524 | no normal-output change |
-| DC-01: finite physical values falsely rejected | direct products `8*f*C`, `2Pt`, `d(2V−d)` could overflow or underflow before quotient | retain unchanged normal expression, recover only invalid direct arithmetic via positive log-factorization; reject genuine nonrepresentable output | `tests/test_numeric_boundaries.py` new extreme cases; `matlab/tests/TestReferenceModels.m` added paired cases; latest CI pending | legitimate high-range values now accepted; fallback may differ by expected floating-point roundoff |
-| DC-02: zero load on extreme values | positive denominator overflow triggered failure even for zero ripple or zero power | return 0 after complete domain validation for i=0 or P/t=0 | Python zero-load tests passed intermediate CI; latest pending | preserves physical exact-zero semantics |
-| TST-01: unsound old boundary assertion | old test expected rejection for finite huge quasi-adiabatic thermal update | replace with independent reference-value assertion, without removing boundary coverage | green Python CI on 44944689524 | correction to scientific test oracle |
-| TST-02: new MATLAB test failures | asserted scalar against N+1 trace and assumed empty-array error ID `MATLAB:expectedNonempty` instead of observed `MATLAB:expectedRow` | compare full [initial, endpoint] vector and observed valid MATLAB exception contract | actual failing MATLAB job 136969751615; corrected test awaits rerun | tests only |
-| STY-01: Ruff import spacing | extra blank lines before top-level helper | normalize import spacing in both source files | intermediate Ruff failure, then code edit; newer Ruff run expected | formatting only |
-| SEC-01: vulnerable scanner dependency | hash-locked `wcmatch==8.5.2` newly affected by CVE-2026-132276, found by real pip-audit job | update `requirements.in` and hashed `requirements.txt` to wcmatch11.2 using PyPI published digests | failed 44944829714, updated scanner supply chain, CI rerun pending | major-version compatibility requires execution; no ignore added |
-| DOC-01: scope documentation | equation presentation lacked adjacent complete limitations | document exact pulse, triangular waveform, Biot, reversible heat omitted, ESR/ESL and no hardware calibration | source-level prose and metadata review | no API change |
-
-## Changed-file ownership / collision avoidance
-
-- Thermal: `src/battery_thermal.py`, `matlab/battery_thermal_lumped.m`
-- DC link: `src/dc_link.py`, `matlab/dc_link_ripple.m`
-- Validation/regression: `tests/test_numeric_boundaries.py`, `tests/test_scientific_audit.py`, `tests/test_physical_properties.py`, `matlab/tests/TestReferenceModels.m`
-- Documentation: `README.md`, `docs/math-and-physics/EQUATIONS_AND_DERIVATIONS.md`, `docs/math-and-physics/ASSUMPTIONS_AND_LIMITS.md`
-- Security: `.github/security/requirements.in`, `.github/security/requirements.txt`
-
-Existing public function names, arguments, return structures and CSV schema preserved. No unrelated sites, releases or remote branches changed. Documentation and audit reports are themselves the other new files in this PR.
-
-## Evidence commands
-
-- `python -m unittest discover -s tests -v`
-- `python -m pytest -q`
-- `python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv`
-- `python src/dc_link.py`
-- MATLAB R2026a `addpath('tools'); security_numerical_gate`
-- `git diff --check`, `git status --short`
-- CI: https://github.com/mohammadrezwankhan/battery-power-models/actions
-
-Significant defects have deterministic reproductions; successful fixes are asserted only where later CI runs actually passed.
+**Verification principle:** The reproducible red-to-green history is retained. No assertions were deleted to make a failing test pass; no scanner exceptions were added; no remote branches were removed. The public Python and MATLAB combined function signatures remain supported. Scanner toolchain and development-group changes are isolated from the dependency-free native Python runtime.

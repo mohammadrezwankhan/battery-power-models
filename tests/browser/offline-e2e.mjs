@@ -36,6 +36,7 @@ const FIXED_QUERIES = Object.freeze({
   exportCsv: '(async()=>{const original=URL.createObjectURL;let saved;URL.createObjectURL=(blob)=>{saved=blob;return original.call(URL,blob)};try{document.getElementById("csv-button").click();const text=await saved.text();const rows=text.trim().split(/\\r?\\n/).map(r=>r.split(","));return {header:rows[0],count:rows.length-1,first:rows[1],last:rows.at(-1)}}finally{URL.createObjectURL=original}})()',
   reducedMotion: '({enabled:matchMedia("(prefers-reduced-motion: reduce)").matches,scroll:getComputedStyle(document.documentElement).scrollBehavior,transform:getComputedStyle(document.querySelector(".hero-art")).transform})',
   viewportSize: '({innerWidth:window.innerWidth,scrollWidth:document.documentElement.scrollWidth})',
+  contrastSamples: '(()=>{const selectors=["h1",".hero-summary",".metric-label",".metric-caption",".module-title",".module-state",".check-top",".panel-title",".footer a",".btn.primary"];return selectors.map(selector=>{const element=document.querySelector(selector);if(!element)return null;const style=getComputedStyle(element);return {selector,foreground:style.color,background:style.backgroundColor};}).filter(Boolean)})()',
 });
 async function until(callback, label) {
   // Host virtualization can delay Chrome's DevTools port creation; always
@@ -203,6 +204,33 @@ async function main() {
       assert.ok(size.scrollWidth <= size.innerWidth + 2, 'Horizontal overflow at '+width+'px: '+JSON.stringify(size));
     }
     findings.push('320/375/768/1280px responsive overflow checks');
+    const samples = await client.query('contrastSamples');
+    assert.equal(samples.length, 10, 'Representative text contrast sample count');
+    const baseSurface = [16, 11, 24];
+    function blend(raw, base) {
+      const values = raw.match(/[\\d.]+/g)?.map(Number);
+      assert.ok(values && values.length >= 3, 'Unknown CSS color: ' + raw);
+      const alpha = values.length >= 4 ? values[3] : 1;
+      return values.slice(0, 3).map((v, i) => v * alpha + base[i] * (1 - alpha));
+    }
+    function luminance(channels) {
+      const linear = channels.map((v) => {
+        const color = v / 255;
+        return color <= 0.04045 ? color / 12.92 : ((color + 0.055) / 1.055) ** 2.4;
+      });
+      return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+    }
+    for (const sample of samples) {
+      const background = sample.selector === '.btn.primary'
+        ? blend(sample.background, baseSurface) : baseSurface;
+      const foreground = blend(sample.foreground, background);
+      const a = luminance(foreground);
+      const b = luminance(background);
+      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      assert.ok(ratio >= 4.5,
+        'Insufficient representative text contrast: ' + sample.selector + ' = ' + ratio);
+    }
+    findings.push('ten representative computed text-contrast checks >=4.5:1');
     assert.deepEqual(scriptErrors, [], 'Uncaught browser exceptions');
     assert.deepEqual(remoteRequests, [], 'External network request in offline mode');
     findings.push('no uncaught JS exceptions or HTTP(S) requests');

@@ -1,68 +1,67 @@
 # Battery Power Models — Scientific and Software Audit
 
-## Later evidence and adversarial correction (2026-11-21)
+**Scope:** educational/early-stage engineering reference models, *not* certified hardware or safety software.  
+**Repository:** https://github.com/mohammadrezwankhan/battery-power-models  
+**Original audited main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d` (2026-11-19).  
+**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a` on PR [#52](https://github.com/mohammadrezwankhan/battery-power-models/pull/52), 2026-11-21 UTC.  
+**Evidence rule:** these are completed results at the *specified source*. The subsequent documentation/release commit must independently pass its own CI; historical receipts are never substituted for a newer head.
 
-The prior integrated PR run 44945582567 at branch head `2c636e8a5e8eff96fcef8620786eec0f2453d6f2` **successfully executed 10 MATLAB R2026a tests**, with zero failures/incompletes/analyzer findings, 6 thermal/4 DC-link reference parity cases, and **zero numerical difference** versus both fixed fixture and same-run Python output. The dependency scanner also passed, identifying `wcmatch 11.2` with **zero vulnerabilities**, plus green Python type/lint/test and browser and other security jobs. The SAST scanner installation was still running when a new correction was committed, so no completion claim is made for that job at that SHA.
+## Executive result
 
-A further independent numerical challenge demonstrated that the expression `current² × resistance` can **underflow as an intermediate product despite a representable temperature change** when current is tiny and resistance huge. A separate challenge showed `(heat/C) × dt` can underflow before multiplication by dt. The additional Python/MATLAB fixes and deterministic tests are present at commit `48c5db29ff8929698746754a7d9cdd72054966f7`. Example: `I=1e-200 A, R=1e308 Ω, C=1e-100 J/K, G=0, dt=1 s, T0=0` gives 1e8 °C as a *floating-point stress test*, not a physically plausible cell. Another fixture gives 1e-300 °C from `I=1e-150, R=1, C=1e308, G=0, dt=1e308`. **Latest CI on the new tests remains required; they must not inherit the older run's passing status.** No hardware validity is implied by such extreme inputs.
+The eight-domain audit reproduced and repaired defects in the battery thermal singular/near-singular boundary, finite-double thermal arithmetic, DC-link overflow/underflow handling, input validation, and cross-language API usability. A vulnerable scanner toolchain dependency was patched. The offline educational lab now has an actual headless Chrome GitHub Actions gate, not just source-level assertions. All checks were performed without relaxing failing assertions, granting CI exceptions, deleting branches, force-pushing, or representing reference calculations as hardware validation.
 
-Audit date: 2026-11-21 (UTC). Repository: https://github.com/mohammadrezwankhan/battery-power-models. Baseline: `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d` on protected `main`. Remediation: `audit/scientific-verification-20261121`, draft PR #52. Evidence snapshot for this document: remediation source through `59de49a995f51b63e856c1d87f3b910f313336ef`; status must be checked against the newest PR CI run before release.
+At the verified code candidate, **all five GitHub Actions workflows succeeded**, including **14/14 Hardened CI jobs**; the MATLAB R2026a evidence recorded **15/15 tests**, zero analyzer issues, and exact agreement in the six thermal + four DC deterministic parity fixtures at a tighter **1e-12 relative / 1e-12 absolute** comparison bound. The numerical Python core recorded **98.54% line and 98.96% branch coverage**, above mandatory 95% thresholds. Browser QA verified four modules, eight checkpoints, keyboard interactions, an actual 241-row CSV, reduced-motion CSS, desktop/mobile overflow, and network-disconnected `file://` execution.
 
-## Executive assessment
+## Reproduced defects and repairs
 
-Educational reference scope: piecewise-constant current with lumped thermal balance, ideal symmetric zero-mean triangular capacitor-current ripple, and exact ideal constant-power capacitor hold-up. Neither hardware calibration nor battery safety, BMS, converter certification, CFD/FEA, EMI, ESR/ESL or life prediction is demonstrated.
+| ID | Severity | Real baseline defect / failure mode | Remedy and regression |
+|---|---|---|---|
+| TH-01 | High | Positive cooling conductance was mandatory; physical adiabatic `G=0` case rejected | Exact adiabatic update in Python/MATLAB and step-composition tests |
+| TH-02 | High | Steady-state subtraction cancelled tiny near-adiabatic increments | `expm1`-based stable transient and limiting tests |
+| TH-03 | High | `I²R` or `Q/C` intermediate underflow discarded representable heating | Rescaled arithmetic and independent `1e8` and `1e-300` stress fixtures |
+| TH-04 | High | Temperature difference or formal steady state overflowed although the finite-time transient was representable | Weighted exponential fallback with independently calculated opposite-temperature and power fixtures |
+| DC-01 | High | Intermediate denominator/numerator overflow/underflow rejected representable ripple or energy sizing | Finite-positive log-factorization only when direct arithmetic cannot represent intermediate result |
+| IN-01 | High | Python accepted Boolean numeric values and produced inconsistent invalid-type failures | Explicit finite-real guards; adversarial Boolean, complex, string, None and nonfinite tests |
+| IN-02 | Medium | Empty current profile silently produced a trace | Require nonempty current vector; preserve `N+1` output |
+| PA-01 | Medium | MATLAB required seven arguments for ripple-only or energy-only calculation | Added standalone MATLAB 3-argument and 4-argument helpers; legacy combined struct API preserved |
+| SEC-01 | Medium | Scanner toolchain locked vulnerable `wcmatch 8.5.2` | Pinned SHA-256-verified `wcmatch 11.2`; dependency scanner passed without an exclusion |
+| QA-01 | Medium | Browser offline, exports, keyboard, mobile and reduced motion unexecuted | Mandatory Chrome/CDP `browser-offline` job with JSON evidence and no external network |
+| QA-02 | Medium | New scientific branch coverage exposed gaps below 95% | Added targeted, meaningful boundary regression tests; 95% policy unchanged |
+| QA-03 | Medium | Initial browser QA used an unrestricted runtime expression interface flagged by SAST | Restricted CDP to a frozen allowlist of source-defined test probes; SAST rerun passed |
+| COMP-01 | Medium | Declared Python 3.10 support could not install latest Hypothesis | Pin last compatible Hypothesis version only on Python 3.10; 3.12 retains current pinned version; both suites passed |
 
-Baseline source review confirmed four high-severity numerical/validation findings: (TH-01) zero cooling disallowed; (TH-02) cancellation at vanishing cooling; (IN-01) invalid Python numeric types including booleans allowed/coerced; (DC-01) physically finite capacitor results falsely rejected when intermediate floating-point arithmetic overflowed or underflowed. Additional medium findings: (IN-02) empty current sequences; (DC-02) zero-load computations rejected for irrelevant overflowed intermediate products; (SEC-01) vulnerable scanner-only `wcmatch 8.5.2` locked dependency; (PAR-01) MATLAB's seven-parameter combined API requires both independent calculations; (DOC-01) insufficient adjacent scientific applicability warnings.
+## Eight-domain gate results
 
-Fixes for TH-01, TH-02, IN-01, IN-02, DC-01, DC-02, DOC-01 and SEC-01 have been written to the isolated audit branch; branch CI must establish their full integration validity. PAR-01 remains an API design improvement rather than an unsafe silent breaking change. No remote branches were removed, and no release or merge was performed.
-
-## Actual execution model and evidence honesty
-
-Native Antigravity/Gemini multi-agent spawning, separate model identities, and per-agent worktree orchestration were not accessible in this environment. A single coordinator inspected all eight technical workstreams (A1–A8), performed independent closed-form and browser calculations as scientific challenge V1, and used the live browser and GitHub Actions as an independent execution/verification environment for V2. This is not equivalent to ten independently instantiated agents, and no unverifiable agent approvals are claimed.
-
-Actual source baseline: GitHub repository tree, source functions, 7 workflow YAMLs, MATLAB tests, 30 branch refs, Python test cases, browser embedded and external JSON. Local checkout `git status` and local `git diff --check` were not available through the repository connector; GitHub branch and compare evidence substitute only for remote-state questions.
-
-## Eight domain review
-
-| Area | Evidence classification | Substantive findings and controls |
+| Gate | Evidence | Decision at verified scientific candidate |
 |---|---|---|
-| G1 Thermal solver | PARTIAL pending final regression | Exact exponential update preserved, hA=0 exact adiabatic branch and small-hA `expm1` stabilization applied; independent physical time-constant and step-splitting assertions added. |
-| G2 DC link | PARTIAL pending final regression | Correct ideal triangular-current and exact quadratic pulse formula; intermediate-overflow-safe positive factorization added; ESR/ESL and waveform restrictions documented. |
-| G3 Numerical input validation | PARTIAL pending final regression | Python rejects booleans, complex, strings, nonfinite and missing numeric values; zero and nonzero boundaries treated distinctly; MATLAB validation reviewed. |
-| G4 MATLAB parity | PARTIAL pending new full MATLAB run | Existing independent same-run Python capture and MATLAB reference suite; baseline six thermal/four DC fixtures passed in earlier MATLAB run, but newly added tests initially failed due test mistakes. Corrected tests await re-execution. |
-| G5 Browser | PARTIAL | Four-module public GitHub Pages live smoke test successful, eight independent checkpoints within published tolerances; full file:// offline, mobile and accessibility automation unverified. |
-| G6 Regression/CLI | PARTIAL pending final run | Python CI and docs/model validation succeeded on intermediate commit; numerical and type regressions expanded; latest changes still need green full matrix. |
-| G7 Documentation/metadata | PARTIAL | README scientific scope, Biot condition, waveform limitations and energy assumptions clarified. CITATION.cff, codemeta.json and MIT agree in title, author, repo URL and license at baseline. |
-| G8 CI/governance | PARTIAL pending security scan | Seven workflows inspected; permissions generally least privilege and actions immutable-SHA pinned; 30 existing remote branches inventoried (not 13). Newly disclosed scanner dependency vulnerability patched in branch and awaiting rerun. |
+| G1: thermal mathematical validity | Exact constant-current update, `G=0`, `G→0`, large/small steps, energy/temperature properties, Python/MATLAB | PASS |
+| G2: DC-link physics | Ideal symmetric capacitor-current equation, exact quadratic hold-up, boundary and scaling, caveats | PASS |
+| G3: input/numerical validation | NaN, infinities, negative/zero domains, booleans, empty profiles, overflowing and subnormal inputs | PASS |
+| G4: Python/MATLAB equivalence | 15 MATLAB tests, zero analyzer issues, 10 same-run fixtures, 1e-12 parity bound; helper API parity | PASS |
+| G5: browser | Offline real-Chrome tests, modules/checkpoints, exports, mobile widths, reduced motion, keyboard focus | PASS for measured requirements; full third-party WCAG/screen-reader audit remains outside this execution |
+| G6: regression and CLI | Python 3.10/3.12, unittest/pytest, >=95% line/branch coverage, CLI traces, git diff check | PASS |
+| G7: documentation and metadata | MIT/CITATION/CodeMeta, model assumptions, reproducibility notes, reference-vs-hardware boundary | PASS after final documentation-only CI |
+| G8: CI security/governance | SHA-pinned actions, least privilege, CodeQL, SAST, dependency/trivy/secrets/workflow audits and branch inventory | PASS at candidate; no automatic cleanup |
 
-## Finding ledger (status and remediation are distinct)
+## Reproducible receipts
 
-| ID | Severity | Evidence | Remediation | Primary evidence |
-|---|---|---|---|---|
-| TH-01 | High | FAIL baseline; remediation pending full CI | Fixed on branch | `src/battery_thermal.py`, `matlab/battery_thermal_lumped.m`, `tests/test_scientific_audit.py` |
-| TH-02 | High | FAIL baseline; remediation pending full CI | Fixed on branch | near-adiabatic analytical step and independent limit test |
-| IN-01 | High | FAIL baseline; remediation pending full CI | Fixed on branch | new finite-real guards; boolean and complex regression |
-| DC-01 | High | FAIL baseline; remediation pending full CI | Fixed on branch | factorized overflow/underflow recovery in Python/MATLAB and boundary tests |
-| IN-02 | Medium | FAIL baseline; remediation pending full CI | Fixed on branch | nonempty current profile contracts |
-| DC-02 | Medium | FAIL baseline; remediation pending full CI | Fixed on branch | legitimate zero ripple/power early exits |
-| SEC-01 | Medium | FAIL scanner on 2026-11-21 | Updated lock on branch; retest required | CVE-2026-132276, `.github/security/requirements.in`, `requirements.txt` |
-| PAR-01 | Medium | PARTIAL: observed interface mismatch | Unresolved, nonbreaking improvement | Python standalone sizing functions versus `matlab/dc_link_ripple.m` |
-| DOC-01 | Medium | FAIL baseline clarity | Fixed on branch | `README.md`, `docs/math-and-physics/` |
+- [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116): 14 successful jobs, including MATLAB, browser offline, Python numerical coverage, security scans and Git diff.
+- [Python validation 44960081075](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081075): supported 3.10 and 3.12 versions.
+- [CodeQL 44960081056](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081056).
+- [Documentation/model validation 44960081048](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081048).
+- [Human authorship-policy gate 44960081143](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081143).
+- MATLAB artifact `14728913347`: `test_count=15`, failures/incomplete/analyzer issues all zero, parity tests passed, all 10 baseline/same-run max absolute errors zero.
+- Core coverage artifact `14728728417`: 203/206 statements, 95/96 branches.
+- Browser artifact `14729600827`: all four modules, eight checkpoints, 241 CSV rows, zero external requests, zero exceptions.
 
-## Reproducible evidence and runs
+Earlier intentionally failing tests and quality gates have traceable regression evidence, including runs `44959000832` (thermal overflow reproductions), `44959078485` (coverage and unrestricted browser probes), and `44959532286` (transient Chrome DevTools startup issue). All were fixed; test thresholds and scanner rules were retained.
 
-- Baseline: five completed successful GitHub Actions workflows at `ee64a256` from 2026-11-19, including Hardened CI and CodeQL. Source: https://github.com/mohammadrezwankhan/battery-power-models/actions
-- Initial patched PR test run https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44944604763 failed: high-current OverflowError plus an invalid old test expectation. Corrected and shown green at intermediate head https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44944689524.
-- Follow-up numerical MATLAB run https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44944829714: the two legacy parity tests passed, but two new tests failed because of incorrect asserted output shape/error ID; the test defects were fixed. Its dependency scan also found `CVE-2026-132276` in scanner toolchain.
-- Last fully reported intermediate head `230b7981c0`: Python validation, documentation/model, CodeQL and authorship checks succeeded; broader CI uncovered the above MATLAB and dependency issues. Newer changes require re-validation; do not extrapolate older success.
-- Independent direct integration: 80 A, R=0.003 ohm, C=5000 J/K, G=4 W/K, ambient=25 °C, 900 s yields 29.8 °C equilibrium and ~27.4636 °C at 900 s. At hA=0, ten seconds gives 25.0384 °C. 20 A peak-to-peak current, 10 kHz, 2.2 mF gives ~0.113636 Vpp. 20 kW for 0.02 s, 800 V bus and 20 V allowed drop yields ~0.0253164556962 F.
-- Four browser presets, eight checkpoints: independently recomputed, all within 0.02 stated absolute tolerance; full matrix: `audit/BROWSER_AUDIT.md`.
-- Desktop live site observation: https://mohammadrezwankhan.github.io/battery-power-models/ using a read-only interactive browser; screenshots/observations confirmed all four tabs, preset buttons, check buttons, plotting and desktop layout.
+## Scope and release recommendation
 
-## Residual risks and recommendation
+A successful test run proves software-model correctness within its assumed equations; it **does not validate actual cells, spatial thermal gradients, cell chemistry, battery safety, inverter waveforms, ESR/ESL, control systems, component ratings, or hardware certification**. The model uses lumped `I²R` heating at fixed resistance/conductance/capacitance; the simplified ripple formula applies only to its zero-mean symmetric triangular **capacitor-current** assumption. The effective Biot condition requires measured geometry/conductivity evidence not provided by this repository.
 
-Do not merge/mark READY on this snapshot: final MATLAB, vulnerability-scan and the complete final PR run must pass. Separately, genuine file:// offline execution, reduced-motion and keyboard sequence and mobile viewport need execution. A Python/MATLAB public API asymmetry remains documented, not secretly altered. This is a provisional **NOT READY for an unconditional verified release** until the identified gates pass or are explicitly classified and justified under the release policy. See `audit/FINAL_RELEASE_GATE.md`.
+**Reference-model release candidate: READY once the final exact PR head's required CI and branch protection checks pass.** Do not publish a semantic software version or claim a hardware-certified product without separate release authority and measured qualification evidence.
 
-## Evidence integrity
+## Execution integrity
 
-Tests and workflows listed as PASSED were observed from real completed jobs; source-level matches, proposed changes and unexecuted environments are explicitly not certified. The audit branch is a proposal, no release was published, no force push, and no branch deletion.
+The GitHub connection, completed GitHub-hosted Python/MATLAB/Chrome/CodeQL/security jobs and independent mathematical derivations were used for this audit. Native Gemini/Antigravity multi-agent identities and isolated local worktrees were not instantiated and are **not** claimed as successful independent agent runs. Detailed evidence is in this directory; no branch deletions were performed.

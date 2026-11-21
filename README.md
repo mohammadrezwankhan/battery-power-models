@@ -1,8 +1,29 @@
 ![Battery and Power Reference Lab: original vector system illustration](assets/brand-uniformity/hero-25d.svg)
 
+[![Hardened CI](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/hardened-ci.yml/badge.svg)](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/hardened-ci.yml) [![Python validation](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/python-validation.yml/badge.svg)](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/python-validation.yml) [![CodeQL](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/codeql.yml/badge.svg)](https://github.com/mohammadrezwankhan/battery-power-models/actions/workflows/codeql.yml)
+
 Dependency-free Python references and MATLAB equivalents cover lumped battery heating and DC-link sizing. The browser lab follows the thermal balance and directs electrical sizing questions to the native functions.
 
 **[Native-source lesson guide](docs/portfolio/) · [Offline interactive lab](docs/index.html) · [Lesson configuration](docs/lesson-config.json) · [Configuration schema](docs/lesson-config.schema.json)**
+
+## Reproducibility and scientific verification
+
+The [eight-domain audit package](audit/AUDIT_REPORT.md) contains the [requirement matrix](audit/VERIFICATION_MATRIX.md), [mathematical and MATLAB parity evidence](audit/NUMERICAL_PARITY_REPORT.md), [browser QA](audit/BROWSER_AUDIT.md), [CI security report](audit/CI_SECURITY_REPORT.md), [branch inventory](audit/BRANCH_HYGIENE_REPORT.md), [fix log](audit/FIX_LOG.md) and [release gate](audit/FINAL_RELEASE_GATE.md).
+
+Native **Python 3.10 and 3.12** models are standard-library-only; running the regression and property suites requires the development dependency group. The MATLAB R2026a numerical gate tests independent physics fixtures at `1e-12` relative and near-zero absolute tolerance; its public single-purpose DC-link functions do not require dummy parameters.
+
+```bash
+python -m pip install --group dev
+python -m unittest discover -s tests -v
+python -m pytest -q
+python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv
+python src/dc_link.py
+node tests/browser/offline-e2e.mjs
+```
+
+The last browser command requires local Chrome/Chromium and Node 24; it tests the four-module standalone lab with networking disconnected, keyboard interaction, reduced motion, 320–1280px viewports, and actual 241-row synthetic CSV export. [Hardened GitHub Actions](.github/workflows/hardened-ci.yml) runs this automatically, including source lint/types, security scanners, MATLAB tests, numerical coverage and a clean PR diff.
+
+**Safety and applicability:** All figures and outputs are deterministic educational reference calculations, **not measured cell/pack performance, inverter certification, battery safety qualification, component rating or operational engineering advice**. The lumped temperature model uses constant resistance and effective cooling; DC-link equations omit ESR/ESL and require a zero-mean symmetric triangular capacitor-current assumption. See the [scientific limits](docs/math-and-physics/ASSUMPTIONS_AND_LIMITS.md) before adaptation.
 
 ## Previous animations
 

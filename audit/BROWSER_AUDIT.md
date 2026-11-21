@@ -1,57 +1,55 @@
-# Browser Lab Audit — Four Modules, Numerical Checkpoints, and Accessibility
+# Browser Lab Audit — Executed Offline, Keyboard and Responsive QA
 
-Reviewed sources: `docs/index.html`, `docs/lesson-config.json`, `docs/lesson-config.schema.json`, `tests/browser/csp.test.mjs`, `scripts/browser-csp.mjs`. Public Pages: https://mohammadrezwankhan.github.io/battery-power-models/. Read-only live browser test completed 2026-11-21. No user data was collected and no repository changes were made by the browser.
+**Source:** `docs/index.html` / `docs/lesson-config.json` / `tests/browser/offline-e2e.mjs`.  
+**Verified candidate CI:** [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), browser artifact `14729600827`.  
+**Public GitHub Pages:** https://mohammadrezwankhan.github.io/battery-power-models/
 
-## Model and numerical provenance
+The browser lab contains four guided lessons based on an idealized directly specified thermal heat input, not the native default `I²R` current specification. The UI time unit is **minutes**; equations convert to SI seconds. An education checkpoint proves consistency with an analytical reference model, not physical device calibration.
 
-The embedded JSON lesson config in HTML was parsed and checked for exact JSON structure equality with `docs/lesson-config.json`: **equal at baseline**. The active browser lesson uses illustrative *direct heat input* in watts, time in **minutes** with factor 60 to convert to SI seconds, fixed ambient starting temperature, and thermal capacitance in J/K. It is related to but not identical in parameter defaults or current-to-heat mapping with the native Python cell model. Browser JS thermal source includes `delta = heatW/coolingWK * (1 - Math.exp(-coolingWK*t*60/capacityJPerK))`, the exact first-order exponential prediction. This is not Forward Euler. Browser numerical code also includes additional demonstrator model families that are not the advertised two native solver families; do not misstate native model count as number of browser modules.
+## Independently calculated checkpoints
 
-## Independent checkpoint reconstruction
+All four presets and eight absolute-tolerance checks were independently recomputed with `T(t)=T_a+(Q/G)(1−exp(−G×60t/C_th))`, `Q_rejected=G(T−T_a)`, `E_stored=C_th(T−T_a)/1000`. Every published tolerance is **0.02** in the stated metric units.
 
-Used `T(t)=Ta+(Q/G)(1−exp(−G×60t/C))`, `removed=G(T−Ta)`, and `stored=(T−Ta)C/1000`. Values below computed independently from each module preset; tolerance is 0.02 absolute in the individual metric units as specified in the embedded config.
+| Module / time | Metric | Published | Independent calculation | Decision |
+|---|---|---:|---:|---|
+| Heat balance / 5 min | T °C | 34.481808 | 34.4818083824 | PASS |
+| Heat balance / 60 min | T °C | 39.999908 | 39.9999078368 | PASS |
+| Current/heat / 60 min | T °C | 84.999631 | 84.9996313473 | PASS |
+| Current/heat / 60 min | Heat removed W | 1199.992627 | 1199.9926269452 | PASS |
+| Cooling / 60 min | T °C | 40.000000 | 40.0000000000 | PASS |
+| Cooling / 60 min | Stored kJ | 90.000000 | 90.0000000000 | PASS |
+| Transfer / 10 min | T °C | 43.260066 | 43.2600655382 | PASS |
+| Transfer / 10 min | Stored kJ | 495.603932 | 495.6039322945 | PASS |
 
-| Module | Preset Q/G/C/Ta | Check at time | Metric | Published expected | Independently computed | Within tol |
-|---|---|---|---|---:|---:|---|
-| 1: heat balance | 300 W /20 W·K⁻¹/6000 J·K⁻¹/25°C | 5 min | temperature °C | 34.481808 | 34.4818083824 | PASS |
-| 1 | same | 60 min | temperature °C | 39.999908 | 39.9999078368 | PASS |
-| 2: Joule heat | 1200 W /20/6000/25 | 60 min | temperature °C | 84.999631 | 84.9996313473 | PASS |
-| 2 | same | 60 min | removed W | 1199.992627 | 1199.9926269452 | PASS |
-| 3: cooling | 1200 W /80/6000/25 | 60 min | temperature °C | 40.000000 | 40.0000000000 | PASS |
-| 3 | same | 60 min | stored kJ | 90.000000 | 90.0000000000 | PASS |
-| 4: transfer to DC | 1200 W /80/60000/35 | 10 min | temperature °C | 43.260066 | 43.2600655382 | PASS |
-| 4 | same | 10 min | stored kJ | 495.603932 | 495.6039322945 | PASS |
+HTML-embedded lesson JSON matched `docs/lesson-config.json` on baseline source review. The active JS thermal equation uses an exact exponential, not Forward Euler.
 
-All eight numerical checkpoint values agree; no tolerance was widened.
+## Actual real-browser execution
 
-## Read-only interactive browser QA
+Chrome was launched by GitHub Actions with remote networking disabled and loaded `docs/index.html` as `file://` in a fresh profile. A scoped DevTools test harness uses a frozen set of authored expressions, not a general-purpose user-controlled evaluator. These assertions actually passed:
 
-A separate live browser session loaded the public GitHub Pages site and interacted with the interface. Confirmed: all four modules selectable; each module's `Load lesson preset` responds and updates the heat, cooling, capacity and ambient controls; `Check outcomes` is responsive; chart and axis labels render; metric tabs switch; model assumptions disclosure opens; source-oriented actions and desktop layout show no obvious clipping. This is a smoke test, not a full Playwright axe-core audit. It did not inspect every checkpoint verdict from DOM assertions or export each CSV payload.
+| Criterion | Observed result |
+|---|---|
+| Offline `file://` and no network | PASS, zero external HTTP(S) requests |
+| All four module tabs, four presets | PASS |
+| Eight named UI checkpoints | PASS, each module reported 2/2 |
+| Keyboard module arrows, End/Home, slider ArrowRight | PASS |
+| Configuration dialog open, Escape and focus restoration | PASS |
+| Actual downloaded CSV *contents* | PASS, 241 samples, expected header, first time=0, end time=60 min |
+| Reduced-motion media preference | PASS, computed `scroll-behavior:auto`, hero transform none |
+| 320, 375, 768, 1280 px widths | PASS, no horizontal page overflow |
+| Uncaught JS exceptions | PASS, zero |
+| External network requests | PASS, zero |
 
-| Check | Status | Evidence and limitations |
-|---|---|---|
-| Four module tabs | PASS | individually clicked in browser |
-| Four preset buttons | PASS | each clicked, controls update |
-| Outcome-check action | PASS functional | click responds; full per-checkpoint UI assertion not performed |
-| Chart visibility / desktop spacing | PASS smoke | chart labels/axes and panel visible, no observed overflow |
-| Source JS math parity | PASS source | closed-form thermal source inspected |
-| Source JSON parity | PASS source | embedded vs external JSON structurally equal |
-| Live-file `file://` offline / no network | BLOCKED | not performed; site badge "offline ready" is a claim, not evidence |
-| GitHub Pages relative assets | PARTIAL | public deployed site renders; full case-sensitive link crawler not performed |
-| Keyboard navigation and sliders | PARTIAL | one Tab pressed, no complete focus traversal |
-| Mobile viewport | BLOCKED | no mobile resize exercised |
-| Reduced motion | PARTIAL | CSS `@media(prefers-reduced-motion: reduce)` found and anim suppression present; preference emulation and actual computed-style assertion not run |
-| Exported CSV schema and values | PARTIAL | export control visible, downloaded bytes not independently checked |
-| Console errors | PARTIAL | no visible page exceptions, browser console API inspection not performed |
-| External CDN dependencies | PARTIAL | source architecture appears inline/offline-first; real network trace not captured |
+Detailed observed widths in the JSON receipt: document/viewport 320/320, 375/375, 753/768 and 1265/1280 CSS px. The public hosted site also passed a separate interactive four-module smoke test. No changes to student/user data occurred.
 
-## Recommended machine-executable checks
+## Boundaries and residual UX work
 
-1. Open `docs/index.html` from a clean checkout as file:// with network fully disabled, load all four presets, check checkpoints and exports.
-2. Repeat under GitHub Pages relative directory hosting and exercise all intra-site links.
-3. Run keyboard-only tab order, Enter/Space activation, slider arrow keys and dialog Escape.
-4. At viewport widths 320, 375, 768 and 1280 px, capture chart and control overlap.
-5. Emulate `prefers-reduced-motion: reduce` and inspect computed animation/transition durations; require static engineering quantities to remain visible.
-6. Parse exported CSV rows, units, sample count, timestamp semantics and JSON export values.
-7. Record failed network requests, console exceptions and WCAG contrast/focus evidence.
+The audit is a functional and focused accessibility smoke test. It is **not** a full WCAG 2.2 or screen-reader certification: cross-platform assistive technology, zoom at 400%, every graphic's contrast and color-vision modes have not been independently certified. A targeted computed text-contrast regression is incorporated in the final QA proposal; it must pass the same GitHub Actions job before merge. Native browser tests are independent of tool-name claims and do not establish physical battery or capacitor safety.
 
-**Claim boundary:** Passing educational checkpoints validates consistency with a synthetic model; it is not field calibration, thermal safety evidence or power-electronics hardware certification.
+## Run locally
+
+Requires modern Node (tested Node 24) and Chrome/Chromium available at a standard Linux path or through `CHROME_BIN`:
+
+`node tests/browser/offline-e2e.mjs`
+
+The script deliberately fails if Chrome is missing, a checkpoint is wrong, a CSV row is wrong, a keyboard flow breaks, an external request occurs, a script exception is thrown or responsive overflow is detected. It saves `hardening-artifacts/browser-offline-qa.json` with pass/fail evidence. Headless test output never silently substitutes for an inaccessible browser.

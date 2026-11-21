@@ -1,5 +1,18 @@
 # API, CLI and interfaces
 
+> **2026-11-21 API update:** The November 19 snapshot below remains a preserved
+> history of the previous implementation. The audited implementation now permits
+> `cooling_conductance_w_per_k = 0` (exact adiabatic limit), requires a **nonempty**
+> current profile, and explicitly rejects Boolean/non-real direct numerical input
+> in Python. Both Python and MATLAB use a stable `expm1`-based near-zero limit.
+> Native MATLAB now also exposes:
+> `triangular_current_ripple_vpp(current_pp_a, switching_hz, capacitance_f)`
+> and `minimum_capacitance_for_energy_pulse(power_w, pulse_s, bus_v, allowed_drop_v)`.
+> Existing `dc_link_ripple(...seven inputs...)` remains backward-compatible.
+> The current fixture target is **1e-12 relative / 1e-12 absolute**, with executed
+> MATLAB R2026a evidence in [the audit parity report](../../audit/NUMERICAL_PARITY_REPORT.md).
+> Browser offline and keyboard checks are now real Chrome CI gates.
+>
 > Documentation snapshot: **2026-11-19**. Implementation examined: [`0304bfec25c43f42f103ebda239749b88609a187`](https://github.com/mohammadrezwankhan/battery-power-models/tree/0304bfec25c43f42f103ebda239749b88609a187). Execution evidence and proposals are identified separately.
 
 ## Python thermal API

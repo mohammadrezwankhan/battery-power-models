@@ -1,5 +1,9 @@
 # Remote Branch Topology and Non-Destructive Cleanup Recommendation
 
+## Post-audit status and deletion safety
+
+At original 2026-11-21 baseline the GitHub API showed **30 remote branches including protected main** (29 non-main). An isolated audit branch was subsequently added. The table below records the actual **historical main-vs-branch comparison at the original baseline**, not current post-merge statuses. Branch names, ages or behind-only status do **not** constitute deletion authority; no remote branch was deleted, force-pushed or silently cleaned.
+
 ## Pull-request cross-check
 
 GitHub's open-pull-request API returned **one open PR** as of the audit: draft **#52** from `audit/scientific-verification-20261121` into `main`. None of the original 29 non-main baseline branches were head branches of currently open PRs in that response. This does not establish past merge/closed-PR history or authorize deletion. No cleanup was carried out.

@@ -1,50 +1,39 @@
-# Final Release-Readiness Gate — PROVISIONAL
+# Final Release Gate — Evidence-Based Reference-Model Readiness
 
-## Newest audit update and superseding receipts (2026-11-21)
+**Repository:** https://github.com/mohammadrezwankhan/battery-power-models  
+**Original main:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`  
+**Verified scientific candidate:** `3b6100bcd1899094a4003045adb00fd69c5f1b2a`  
+**PR:** https://github.com/mohammadrezwankhan/battery-power-models/pull/52  
+**Decision as of 2026-11-21:** **READY FOR REVIEW as an educational reference-model release candidate**, conditional on green CI at the **final exact PR head** and successful post-merge Pages deployment. No hardware/product certification claim.
 
-The previous integrated run https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44945582567 verified **10 MATLAB R2026a tests passed, 0 failures, 0 incomplete, 0 analyzer issues** and **zero absolute error** over six thermal and four DC-link parity fixtures against baseline and same-run Python. Its security dependency scan **PASSED** with patched `wcmatch 11.2`, no vulnerabilities. Its Python tests/lint/types, browser tests/lint/types, workflow, secrets, Trivy, CodeQL, documentation/model validation and authorship checks also completed successfully. SAST was still running when the branch was amended; do not mark that job PASS without a terminal result.
+## Release criteria and actual evidence
 
-Subsequent adversarial challenge found a **new high-severity floating-point underflow issue TH-03** with representable adiabatic outputs. The corrected code/tests were committed at `48c5db29ff8929698746754a7d9cdd72054966f7`. **This new revision resets G1/G4/G6 to PARTIAL until its own Python and MATLAB CI finishes.** The whole repository remains **NOT READY for an unconditional READY release** under the mandatory offline/keyboard/mobile/reduced-motion evidence requirements; these actual browser operations remain only partial/blocked. If a release is considered strictly for educational native Python/MATLAB references after all latest CI passes, a separate CONDITIONALLY READY assessment may be appropriate with explicit browser limitations.
-
-**Repository:** https://github.com/mohammadrezwankhan/battery-power-models
-**Baseline:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`
-**Remediation:** draft https://github.com/mohammadrezwankhan/battery-power-models/pull/52
-**Evidence snapshot:** code through `59de49a995f51b63e856c1d87f3b910f313336ef`, report authored 2026-11-21. The latest branch head and completed workflow list must be rechecked on every further amendment.
-
-## Eight mandatory gates
-
-| Gate | Evidence status | Release condition |
+| Mandatory gate | Observed at verified scientific candidate | Status |
 |---|---|---|
-| G1 Thermal correctness | PARTIAL | New adiabatic and near-zero tests passed intermediate Python CI; final integrated MATLAB parity and physical boundary test required |
-| G2 DC-link correctness | PARTIAL | Exact formula and normal fixtures verified; newly implemented safe extreme-range branch needs final Python/MATLAB CI |
-| G3 Numerical validation | PARTIAL | Type guards and test suite passed intermediate Python CI; final integration run pending |
-| G4 Cross-language parity | PARTIAL | Original 6+4 fixtures executed in MATLAB successfully earlier; two new MATLAB test mistakes corrected; new cases and final run not yet passed |
-| G5 Browser consistency | PARTIAL | Eight independently recomputed checkpoints and four-module live smoke pass; offline file://, full accessibility and exports unverified |
-| G6 Regression coverage | PARTIAL | Python validation passed on intermediate commit, all current branch checks require final CI |
-| G7 Scientific documentation | PARTIAL | revised equations, model assumptions and metadata source review; release QA and tests on final SHA required |
-| G8 CI/CD governance | FAIL at prior run / REMEDIATED pending | scanner found CVE-2026-132276; pinned 11.2 fix awaits successful dependency scan; branch inventory non-destructive |
+| G1 Thermal mathematical correctness | Exact positive-cooling, zero/near-zero cooling, stiffness, finite extreme arithmetic with independent values | PASS |
+| G2 DC-link sizing correctness | Ideal triangular-current relationship, quadratic energy pulse, scaling and binary64 boundaries | PASS |
+| G3 Numerical input validation | Nonfinite, invalid domains, booleans, huge and subnormal ranges, empty profiles, informative failures | PASS |
+| G4 Cross-language parity | MATLAB R2026a 15 tests; 10 fixtures identical to baseline/same-run Python; 1e-12 relative/absolute | PASS |
+| G5 Browser consistency | Actual offline Chrome, 4 modules, 8 checkpoint verdicts, 241 CSV rows, keyboard, mobile, reduced motion, zero network | PASS for automated scope; full WCAG lab certification not claimed |
+| G6 Regression and CLI | Python 3.10/3.12, unit/pytest/Hypothesis, 98.54% lines/98.96% branches, CLI, diff/clean checkout | PASS |
+| G7 Scientific documentation | README, physics assumptions, citation, software/hardware scope, eight corrected audit reports | SOURCE REVIEW complete; **requires current documentation CI** |
+| G8 CI/CD governance | 14/14 Hardened jobs, SAST/CodeQL/dependencies/secrets/Trivy/workflow lint, protected main, no destructive changes | PASS on code candidate; **requires final-head CI** |
 
-## Real execution receipts
+Verified [Hardened CI](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), [Python](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081075), [CodeQL](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081056), [docs/model](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081048), [authorship](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081143). Artifacts: MATLAB `14728913347`, coverage `14728728417`, browser `14729600827`. The actual MATLAB report says test_count=15, failed=0, incomplete=0, parity_verified=true, same_run_python_verified=true, code_issues=[], all ten numerical errors zero. Exact `1e-12` bounds are in fixture and Python/MATLAB tests.
 
-- **PASS historical baseline, not new patch:** five November 19 main-branch CI workflows at `ee64a256`.
-- **PASS intermediate patch:** Python validation https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44944689524, subsequent original-src/code tests and TypeScript checks on intermediate commits.
-- **PASS source and external browser smoke:** all four modules and all eight independent checkpoint calculations.
-- **FAIL intermediate patch, fixed but requiring re-execution:** MATLAB new test shape and ID assertions, dependency scan newly disclosed wcmatch CVE.
-- **BLOCKED:** local git status/diff checks and complete local file:// offline/accessibility execution; specific valid external browser evidence cannot substitute for these tests.
+## Fail-closed publication requirements
 
-## Release decision
+1. Confirm PR #52's *latest* head SHA and main branch base SHA have not changed unexpectedly; review the proposed files and PR conversations.
+2. Require successful terminal results on that same source for **Hardened CI (all jobs), Python validation (3.10 and 3.12), CodeQL, documentation/model checks, and authorship policy**. Never rely on an earlier green SHA.
+3. Require existing GitHub branch/ruleset protections to permit merge. Do not use admin bypass, disabled checks, force push, or overridden policies.
+4. Use ordinary **merge commit** (not squash or rebase) with an expected head SHA guard; preserve PR and audit evidence history.
+5. Verify the resulting main SHA. GitHub Pages `deploy-dashboard.yml` must validate and deploy the reviewed `docs/` source; inspect the actual Actions deployment conclusion and public URL before claiming published success.
+6. Do not delete any remote branch automatically. Do not invent a new version, tag or formal software release without an explicit versioning decision.
 
-**NOT READY for an unconditional READY declaration on the captured evidence snapshot.** The core numerical fixes are committed to a separate *draft* branch, not merged. A correct release gate requires all significant scientific, Python, MATLAB, scanner and browser checks to have *actual recorded success*. A blocked mandatory gate cannot be silently called PASS. When full CI passes and documented remaining browser limitations are accepted as nonmaterial to the restricted educational reference scope, assess CONDITIONALLY READY with transparent conditions; READY requires materially verified gates and absence of unresolved critical/high defects.
+## Scientific/engineering qualification boundary
 
-## Exact next verification steps
+READY refers **only to reproducible educational reference software**: fixed resistance and effective heat rejection, one lumped temperature, ideal triangular capacitor-current ripple and ideal capacitor energy pulse. It does not mean hardware-ready battery pack modelling, calibrated physics, cell safety certification, electrochemistry, state-dependent resistance, CFD, real inverter spectra, capacitor lifetime, ESR/ESL or compliance to a hardware standard. Those are separate design-validation workstreams requiring project-specific measurements.
 
-1. Inspect the *newest* PR SHA and every job result in the associated Hardened CI, CodeQL, Python validation, Markdown/model validation, and authorship workflows; inspect scanner artifact for CVE-2026-132276 and any newly flagged issue.
-2. Confirm MATLAB R2026a `security_numerical_gate` returns success including new boundary tests and same-run Python output hashes.
-3. Check all updated Python tests, Ruff, mypy, browser lint/tests/types.
-4. Execute `git diff --check` and `git status --short` in a clean checkout. Review all changes against baseline for unrelated material.
-5. Test standalone file:// offline, keyboard access, mobile viewport and reduced-motion CSS, capture exports and console errors.
-6. Obtain explicit authorized review to merge; do not auto-delete branches, force-push or publish release.
+## Human/agent verification integrity
 
-## Acknowledged execution limitations
-
-The requested Gemini/Antigravity swarm could not be spawned from this chat; eight domain workstreams and independent arithmetic and browser/CI evidence were used without pretending ten autonomous models ran. This gate has no invented agent signoffs. No destructive branch operation or release publication was performed.
+The proof includes real GitHub runner Python, MATLAB R2026a and Chrome, independent algebra and a public browser smoke test. It does **not** include 10 independently instantiated Gemini/Antigravity agents or an actual parallel worktree swarm. A UI test is not a physical-world qualification.

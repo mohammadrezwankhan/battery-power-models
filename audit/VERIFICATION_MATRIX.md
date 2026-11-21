@@ -1,70 +1,48 @@
-# Requirement Verification Matrix
+# Eight-domain Verification Matrix
 
-## Addendum: late adversarial underflow and verified MATLAB execution
+**Evidence snapshot:** audited main `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d` → verified code candidate `3b6100bcd1899094a4003045adb00fd69c5f1b2a`; [PR #52](https://github.com/mohammadrezwankhan/battery-power-models/pull/52). Source changes made after the candidate need *new* CI receipts; PASS here is scoped to the cited run, not a transferable badge.
 
-| ID | Domain | Test/requirement | Evidence status | Evidence | Fix | Verification |
-|---|---|---|---|---|---|---|
-| TH09 | Thermal | Underflow in I²R when temperature rise remains finite | PARTIAL — newest commit CI pending | `tests/test_scientific_audit.py:test_intermediate_underflow_cannot_erase_finite_adiabatic_heating` and MATLAB `finiteAdiabaticHeatSurvivesIntermediateUnderflow` | rescale I√R and zero-conductance heat/time arithmetic | independent 1e8 and 1e-300 outputs |
-| PA05 | MATLAB | 10 executed original/new tests at 2c636e8 | PASS historical (not latest SHA) | run 44945582567 artifact 14724000147: 10 passed, 0 failed, 0 incomplete; no code analyzer issues; six thermal/four DC parity differences 0 | earlier test shape/ID corrections | MATLAB R2026a |
-| CI07 | Security | wcmatch11.2 scanner dependency fix | PASS at 2c636e8 | run 44945582567 dependency artifact 14723890760: `wcmatch 11.2`, no vulnerabilities, scanner summary passed | hash-locked version update | new SAST job still requires separate result |
+| ID | Domain | Requirement | Result / evidence | Remediation or limitation |
+|---|---|---|---|---|
+| TH01 | G1 | First-order analytical integration vs independent exponential | PASS, `tests/test_models.py`, `tests/test_scientific_audit.py`, MATLAB reference suite | No Euler substitution |
+| TH02 | G1 | Exact `G=0` adiabatic limit | PASS, Python and MATLAB regression | Fixed |
+| TH03 | G1 | `G→0` continuity, `expm1` cancellation | PASS, quasi-adiabatic tests | Fixed |
+| TH04 | G1 | 10s vs 10×1s; constant-current monotonicity | PASS, invariant tests | Independent expected value |
+| TH05 | G1 | Passive cooling at one time constant and convergence after 10τ | PASS, analytic tests | Fixed/expanded |
+| TH06 | G1 | Overflowed formal equilibrium but representable finite transient | PASS; deliberately red in 44959000832, corrected later | Weighted transient fallback |
+| TH07 | G1 | Tiny `I²R` or `Q/C` intermediate underflow | PASS, finite `1e8` and `1e-300` fixtures | Rescaled arithmetic |
+| TH08 | G1 | Exact zero resistance / current, stiff updates, current symmetry | PASS, tests and MATLAB suite | All values model-scoped |
+| TH09 | G1 | Lumped Biot assumption and missing physics clearly stated | PASS docs; actual Biot number unknown | Measured geometry required before hardware use |
+| DC01 | G2 | Ideal symmetric triangular capacitor-current ripple `ΔVpp=ΔIpp/(8fC)` | PASS, independent 0.11363636 Vpp, scaling tests | Not general inverter PWM |
+| DC02 | G2 | Exact quadratic capacitor hold-up, drops 0.1–99.9% | PASS, energy identity tests | No approximate equation substituted |
+| DC03 | G2 | ESR/ESL and component nonidealities disclosed | PASS README/scientific docs | Hardware validation out of scope |
+| DC04 | G2 | Finite outcomes despite overflowed intermediate arithmetic | PASS Python/MATLAB boundary tests | Factorized fallback |
+| VA01 | G3 | Boolean, None, complex, strings and nonfinite rejected | PASS, adversarial Python tests | Strict finite-real guard |
+| VA02 | G3 | Reject invalid R,C,G,dt,capacitance,frequency and bus drop | PASS, input tests | Informative errors |
+| VA03 | G3 | Empty profile, N+1 trace, CSV shape and stable CLI error | PASS, CLI/CSV tests | Nonempty explicit |
+| VA04 | G3 | True zero vs subnormal nonzero, huge integers | PASS numerical boundary tests | No arbitrary max bounds |
+| PA01 | G4 | MATLAB/Python comparison of 6 thermal fixtures | PASS; MATLAB artifact 14728913347 | All max errors zero |
+| PA02 | G4 | MATLAB/Python comparison of 4 DC fixtures | PASS; MATLAB artifact 14728913347 | All max errors zero |
+| PA03 | G4 | Relative target `1e-12` and near-zero absolute `1e-12` | PASS; fixture, Python capture, MATLAB gate share same bound | Tightened from 1e-9 |
+| PA04 | G4 | No irrelevant dummy inputs for MATLAB ripple or pulse-only | PASS, MATLAB standalone 3-/4-input functions | Legacy 7-input API preserved |
+| PA05 | G4 | Actual MATLAB R2026a tests and analyzer | PASS; 15 tests, zero failed/incomplete/code issues | Not inferred from source |
+| BW01 | G5 | Four module tabs, presets and 8 checkpoints | PASS; Chrome offline artifact 14729600827 | All eight pass |
+| BW02 | G5 | Actual `file://` offline run and no HTTP(S) calls | PASS; Chrome network offline, zero requests | No external CDN required |
+| BW03 | G5 | Keyboard tab/arrow/end/home, slider, Escape and focus restoration | PASS Chrome QA | Keyboard flows tested |
+| BW04 | G5 | Valid 241-row CSV content, fields and endpoint time | PASS Chrome QA | Synthetic teaching telemetry |
+| BW05 | G5 | Mobile/desktop widths 320/375/768/1280px no overflow | PASS Chrome QA | Not a complete device-lab test |
+| BW06 | G5 | Reduced-motion computed styles | PASS Chrome QA | Media preference emulated |
+| BW07 | G5 | Visual contrast and screen-reader semantics | PARTIAL: static source/keyboard review, targeted computed contrast QA | Full assistive-technology certification not claimed |
+| RG01 | G6 | Python 3.10 and 3.12 supported and tested | PASS Python validation 44960081075 | Version-specific Hypothesis pin |
+| RG02 | G6 | Core lines >=95%, branches >=95% | PASS 203/206 lines, 95/96 branches | Threshold unchanged |
+| RG03 | G6 | CLI examples, deterministic tests, pytest/Hypothesis | PASS Hardened CI and docs workflow | No disabling failing tests |
+| RG04 | G6 | `git diff --check` and clean checkout | PASS in browser-offline job | Full history on checkout |
+| MD01 | G7 | MIT, CITATION.cff, CodeMeta author/repo/license alignment | PASS source review | No fabricated release date |
+| MD02 | G7 | Reproducible README, full audit reports, physics limits | PASS source review; final CI required | Current docs supersede historic 2026-11-19 snapshot |
+| CI01 | G8 | Full action SHA pinning and least privileges | PASS code review and workflow-security gate | Necessary Pages/CodeQL scopes only |
+| CI02 | G8 | SAST, CodeQL, dependency, Trivy, secrets, workflow scanner | PASS all completed candidate CI categories | No suppressed findings |
+| CI03 | G8 | Scanner CVE-2026-132276 | PASS scanner after wcmatch 11.2 patched hashes | No exemption |
+| CI04 | G8 | 30 original branches enumerated, protected main, no destruction | PASS inventory | Protected-branch detailed policy unreadable (403) |
+| CI05 | G8 | Full final CI before merge, no bypass | CANDIDATE PASS; **must verify subsequent docs-only head** | Gate applied per commit |
 
-Older evidence labels below describe the original audit snapshot; the newer source revision must complete its own integration tests.
-
-**Baseline:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. **Audit branch:** `audit/scientific-verification-20261121`. Status describes evidence at the stated snapshot, not a promise. An item marked PARTIAL requires the exact follow-up described here. Reference GitHub PR #52 and CI runs linked in `AUDIT_REPORT.md`.
-
-| ID | Domain | Test / requirement | Evidence status | Reproducible evidence | Fix | Independent verification |
-|---|---|---|---|---|---|---|
-| TH01 | Thermal | hA=0 exact adiabatic limit | PARTIAL | `tests/test_scientific_audit.py:test_exact_adiabatic_limit_and_step_composition` | Python/MATLAB hA=0 branch | Explicit 25.0384 °C, 10 s |
-| TH02 | Thermal | hA→0 continuity | PARTIAL | `test_quasi_adiabatic_continuity_at_small_conductance` | `expm1` stable difference | Independent limiting power/C arithmetic |
-| TH03 | Thermal | unchanged exact integration at well-scaled hA | PASS at older intermediate SHA | 6 frozen parity fixtures, Python/MATLAB tests | no Euler introduced | 2026-11-21 MATLAB legacy fixture run |
-| TH04 | Thermal | passive cooling after one tau | PASS at older intermediate SHA | 40→25 + 15/e °C | added test | analytic residual |
-| TH05 | Thermal | 1×10 s vs 10×1 s | PASS at older intermediate SHA | `test_exact_adiabatic_limit_and_step_composition` | added test | test oracle distinct |
-| TH06 | Thermal | 10 tau steady convergence | PASS at older intermediate SHA | `test_steady_state_after_ten_time_constants` | added test | exact exponential |
-| TH07 | Thermal | initial state CSV trace N+1 | PASS at older intermediate SHA | `tests/test_input_validation.py` CSV/CLI tests | unchanged | actual Python CI job |
-| TH08 | Thermal | spatial validity and Biot smallness | PARTIAL | README and scope docs | qualified; no geometry known | model cannot certify Biot |
-| DC01 | DC link | symmetric triangular zero-mean ΔIpp/(8fC) | PASS at older intermediate SHA | frozen parity and python tests | scientific warning | independent 0.113636 V |
-| DC02 | DC link | exact constant-power energy pulse | PASS at older intermediate SHA | independent energy conservation, seven voltage-drop ratios | no approximation substituted | 0.0253164556962 F |
-| DC03 | DC link | ripple f/C/current scaling | PASS at older intermediate SHA | `tests/test_scientific_audit.py` | new regressions | separate algebra |
-| DC04 | DC link | no false rejection for finite extreme values | PARTIAL | `tests/test_numeric_boundaries.py` added overflow recovery | log-factorization for intermediate overflow | binary64 extreme-case oracle |
-| DC05 | DC link | subnormal genuine nonzero and true zero | PARTIAL | numeric boundary + zero-load tests | fallback and early exact zeros | no hidden zero rounding |
-| DC06 | DC link | ESR, ESL, waveform scope adjacent | PARTIAL | `README.md` | explicit exclusions | source-level equation review |
-| VA01 | Validation | bool, None, string, complex rejected | PASS at older intermediate SHA | named adversarial tests | finite-real guard | executed Python CI |
-| VA02 | Validation | NaN and ±Inf rejected | PASS at older intermediate SHA | original and added regressions | explicit value guards | Python CI |
-| VA03 | Validation | nonempty current profile | PASS at older intermediate SHA | `test_nonempty_profile_required` | nonempty guard | Python CI |
-| VA04 | Validation | positive C, dt, frequency, limited drop | PASS at older intermediate SHA | old tests and source checks | preserved | Python CI |
-| VA05 | Validation | error exception semantics Python/MATLAB | PARTIAL | two new MATLAB tests initially asserted incorrect IDs | tests corrected | rerun MATLAB needed |
-| PA01 | Parity | six original thermal fixtures | PASS at older intermediate SHA | `matlab/tests/TestPythonParity.m` | maintained | MATLAB R2026a older job |
-| PA02 | Parity | four original DC fixtures | PASS at older intermediate SHA | same | maintained | MATLAB R2026a older job |
-| PA03 | Parity | extreme new cases Python↔MATLAB <=1e-12 | PARTIAL | Python and MATLAB adversarial boundary regressions | factorized fallback | new MATLAB job required |
-| PA04 | Parity | API signature parity | FAIL functional asymmetry | two Python functions vs one seven-argument MATLAB function | no breaking change | future optional helpers |
-| BW01 | Browser | all four module tabs and presets | PASS live | 2026-11-21 desktop read-only live browser smoke test | none | independent browser session |
-| BW02 | Browser | eight thermal checkpoint values | PASS numerical | 8/8 recalculated independently | none | arithmetic and embedded config |
-| BW03 | Browser | embedded vs standalone lesson JSON | PASS source review | `docs/index.html` inline JSON == `docs/lesson-config.json` | none | parsed JSON equality |
-| BW04 | Browser | exact exponential, not Forward Euler | PASS source review | JavaScript line 259 exponential | none | equation match |
-| BW05 | Browser | chart, sliders and no desktop clipping | PASS live | desktop browser smoke test | none | live observation |
-| BW06 | Browser | file:// offline execution and zero HTTP | BLOCKED | network-disabled file:// not available to remote browser test | none | must execute local file:// |
-| BW07 | Browser | keyboard sequence and mobile viewport | PARTIAL | one Tab probe, no thorough viewport test | none | manual/automated accessibility QA |
-| BW08 | Browser | reduced-motion computed CSS | PARTIAL | CSS media query present | none | OS emulation needed |
-| BW09 | Browser | CSV exported content/path | PARTIAL | button observed, export bytes not independently inspected | none | download and inspect |
-| RG01 | Regression | `python -m unittest discover -s tests -v` | PASS older head, latest PENDING | GitHub Python validation and docs-model jobs | expanded suite | rerun newest SHA |
-| RG02 | Regression | CLI examples and schema | PASS older head | docs/model workflow examples and tests | unchanged | GitHub runner |
-| RG03 | Regression | Ruff and mypy | PASS intermediate head; latest PENDING | Hardened CI quality jobs after import-spacing repair | lint fix | final run needed |
-| MD01 | Metadata | CITATION.cff/codemeta/LICENSE | PASS source review | matching repo/author/MIT | none | content comparison |
-| CI01 | Security | GitHub Action SHA pins | PASS source review | seven workflow YAMLs | existing | complete SHA inventory |
-| CI02 | Security | least-privilege permissions | PASS source review | contents:read baseline; justified Pages, CodeQL job exceptions | existing | YAML review |
-| CI03 | Security | scanner dependency advisories | PARTIAL | pip-audit failure CVE-2026-132276 | pinned wcmatch11.2 with PyPI hashes | latest security gate pending |
-| CI04 | Security | 30 existing branches, merge topology | PASS remote API | main vs all 29 branch comparisons | none | explicit no deletions |
-| CI05 | Security | local status and git diff --check | BLOCKED | no writable full local clone/CLI git worktree access | commands documented | GitHub remote diffs are not equivalent |
-| CI06 | Security | final green CI on integrated head | PARTIAL | current PR #52 pending | rerun upon latest commit | required before release |
-
-**Mandatory retest**:
-- `python -m unittest discover -s tests -v`
-- `python src/battery_thermal.py --current 80 --duration 900 --output thermal_trace.csv`
-- `python src/dc_link.py`
-- `python -m pytest -q`
-- `python scripts/capture_python_parity.py --output hardening-artifacts/python-parity.json`
-- MATLAB: `addpath('matlab'); results = runtests('matlab/tests'); assertSuccess(results);`
-- `git diff --check` and `git status --short` in a proper local checkout
-- Browser: open `docs/index.html` using `file://`, disable network, test keyboard, mobile view and reduced motion.
-
-Do not infer success for the latest PR head from older completed CI results.
+Core evidence: [Hardened CI 44960081116](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081116), [Python 44960081075](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081075), [CodeQL 44960081056](https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44960081056). Full manual laboratory certification/real battery tests remain deliberately **out of scope**, not claimed PASS.

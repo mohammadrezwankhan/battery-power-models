@@ -9,7 +9,8 @@
     "quality:lint": "eslint . --max-warnings 0",
     "quality:typecheck": "tsc --noEmit --project tsconfig.json",
     "quality:format": "prettier --check eslint.config.mjs tsconfig.json tsconfig.eslint.json scripts/browser-csp.mjs tests/browser/csp.test.mjs",
-    "quality:browser": "node --test tests/browser/csp.test.mjs"
+    "quality:browser": "node --test tests/browser/csp.test.mjs",
+    "quality:offline": "node tests/browser/offline-e2e.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
