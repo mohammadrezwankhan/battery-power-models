@@ -1,5 +1,9 @@
 # Remote Branch Topology and Non-Destructive Cleanup Recommendation
 
+## Pull-request cross-check
+
+GitHub's open-pull-request API returned **one open PR** as of the audit: draft **#52** from `audit/scientific-verification-20261121` into `main`. None of the original 29 non-main baseline branches were head branches of currently open PRs in that response. This does not establish past merge/closed-PR history or authorize deletion. No cleanup was carried out.
+
 **Repository:** `mohammadrezwankhan/battery-power-models`. **Inspected:** 2026-11-21 against main `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. Source: GitHub branches REST and actual `compare_commits(main, branch)`. **30 branches existed before audit** (including protected `main`); the audit-created `audit/scientific-verification-20261121` adds a 31st. No branches were deleted.
 
 Ahead/behind counts compare branch HEAD to main at the baseline. Diverged is *not* proof a PR is open or that a branch can be deleted. Behind-only branches may contain no commits absent on main, but deletion also requires policy and explicit approval.

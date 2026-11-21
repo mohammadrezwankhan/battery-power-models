@@ -1,5 +1,11 @@
 # Final Release-Readiness Gate — PROVISIONAL
 
+## Newest audit update and superseding receipts (2026-11-21)
+
+The previous integrated run https://github.com/mohammadrezwankhan/battery-power-models/actions/runs/44945582567 verified **10 MATLAB R2026a tests passed, 0 failures, 0 incomplete, 0 analyzer issues** and **zero absolute error** over six thermal and four DC-link parity fixtures against baseline and same-run Python. Its security dependency scan **PASSED** with patched `wcmatch 11.2`, no vulnerabilities. Its Python tests/lint/types, browser tests/lint/types, workflow, secrets, Trivy, CodeQL, documentation/model validation and authorship checks also completed successfully. SAST was still running when the branch was amended; do not mark that job PASS without a terminal result.
+
+Subsequent adversarial challenge found a **new high-severity floating-point underflow issue TH-03** with representable adiabatic outputs. The corrected code/tests were committed at `48c5db29ff8929698746754a7d9cdd72054966f7`. **This new revision resets G1/G4/G6 to PARTIAL until its own Python and MATLAB CI finishes.** The whole repository remains **NOT READY for an unconditional READY release** under the mandatory offline/keyboard/mobile/reduced-motion evidence requirements; these actual browser operations remain only partial/blocked. If a release is considered strictly for educational native Python/MATLAB references after all latest CI passes, a separate CONDITIONALLY READY assessment may be appropriate with explicit browser limitations.
+
 **Repository:** https://github.com/mohammadrezwankhan/battery-power-models
 **Baseline:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`
 **Remediation:** draft https://github.com/mohammadrezwankhan/battery-power-models/pull/52

@@ -1,5 +1,9 @@
 # CI, Supply-Chain Security, and Governance Audit
 
+## Independent inspection of complete intermediate evidence (2026-11-21)
+
+The security dependency artifact `14723890760` from Hardened CI run 44945582567 was downloaded and parsed: `pip-requirements-2.json` lists `wcmatch==11.2` with **no vulnerabilities**, and `summary.json` reports `status=passed`. Thus the targeted CVE fix is not merely a proposed lockfile change: the dependency verification job executed successfully. The source-scanner SAST job had not yet finished when subsequent thermal corrections were committed, and it remains a separately required gate. MATLAB R2026a job in the same run passed all 10 tests, fixture and same-run Python parity, with zero analyzer issues. Later commits must be evaluated using their own exact run SHA.
+
 Audited source: baseline `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`, PR #52 remediation branch. Seven workflows exist in `.github/workflows/`; exact source and recent jobs available at https://github.com/mohammadrezwankhan/battery-power-models/actions.
 
 ## Workflow inventory

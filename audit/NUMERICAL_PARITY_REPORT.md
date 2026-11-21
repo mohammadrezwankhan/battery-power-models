@@ -1,5 +1,11 @@
 # Numerical Physics, Boundaries, and Python/MATLAB Parity
 
+## Follow-up execution receipts and underflow limit (2026-11-21)
+
+The actual MATLAB R2026a report from workflow 44945582567, artifact 14724000147, was inspected: `test_count=10`, `failed_count=0`, `incomplete_count=0`, `code_issues=[]`, `suppressed_issues=[]`, `parity_verified=true`, `same_run_python_verified=true`, six thermal and four DC-link cases, all baseline and same-run Python maximum absolute errors **zero**. CI checked the PR's synthetic merge commit `94600b433e4feab2af741e7698d7ddff2e7a1619` against head `2c636e8a5e8eff96fcef8620786eec0f2453d6f2`. Thus the prior-snapshot statement that complete MATLAB tests were pending has been superseded **for that particular source snapshot**, not for later changes.
+
+Independent boundary challenge after that pass: numerical `I*I*R` evaluates as 0 in binary64 for `I=1e-200`, `R=1e308` although mathematical heat is 1e-92 W. At `C=1e-100`, `G=0`, `dt=1`, correct temperature rise is 1e8 K. Also `heat/C` can underflow to zero even though `(heat*dt)/C` is subnormal nonzero: `I=1e-150`, `R=1`, `C=1e308`, `dt=1e308`, giving 1e-300 K. New Python/MATLAB fallback scaling and test cases are committed at `48c5db29ff8929698746754a7d9cdd72054966f7`; final new-source MATLAB execution is still required. These are mathematical range fixtures, not realistic engineering conditions.
+
 Repository baseline SHA `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. Purpose: independently check implemented model contracts without using one implementation as the only oracle.
 
 ## Thermal derivation

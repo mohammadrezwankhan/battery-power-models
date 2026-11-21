@@ -1,5 +1,11 @@
 # Battery Power Models — Scientific and Software Audit
 
+## Later evidence and adversarial correction (2026-11-21)
+
+The prior integrated PR run 44945582567 at branch head `2c636e8a5e8eff96fcef8620786eec0f2453d6f2` **successfully executed 10 MATLAB R2026a tests**, with zero failures/incompletes/analyzer findings, 6 thermal/4 DC-link reference parity cases, and **zero numerical difference** versus both fixed fixture and same-run Python output. The dependency scanner also passed, identifying `wcmatch 11.2` with **zero vulnerabilities**, plus green Python type/lint/test and browser and other security jobs. The SAST scanner installation was still running when a new correction was committed, so no completion claim is made for that job at that SHA.
+
+A further independent numerical challenge demonstrated that the expression `current² × resistance` can **underflow as an intermediate product despite a representable temperature change** when current is tiny and resistance huge. A separate challenge showed `(heat/C) × dt` can underflow before multiplication by dt. The additional Python/MATLAB fixes and deterministic tests are present at commit `48c5db29ff8929698746754a7d9cdd72054966f7`. Example: `I=1e-200 A, R=1e308 Ω, C=1e-100 J/K, G=0, dt=1 s, T0=0` gives 1e8 °C as a *floating-point stress test*, not a physically plausible cell. Another fixture gives 1e-300 °C from `I=1e-150, R=1, C=1e308, G=0, dt=1e308`. **Latest CI on the new tests remains required; they must not inherit the older run's passing status.** No hardware validity is implied by such extreme inputs.
+
 Audit date: 2026-11-21 (UTC). Repository: https://github.com/mohammadrezwankhan/battery-power-models. Baseline: `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d` on protected `main`. Remediation: `audit/scientific-verification-20261121`, draft PR #52. Evidence snapshot for this document: remediation source through `59de49a995f51b63e856c1d87f3b910f313336ef`; status must be checked against the newest PR CI run before release.
 
 ## Executive assessment

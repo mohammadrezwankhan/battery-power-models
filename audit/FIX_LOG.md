@@ -1,5 +1,11 @@
 # Remediation Fix Log
 
+## Post-integration scientific boundary fix (additional)
+
+**TH-03 — Intermediate underflow erases physically representable thermal increment** (High, source reproducible; regression verification pending): independent floating-point falsification found `I=1e-200, R=1e308, C=1e-100, G=0, dt=1, T0=0`. Mathematically `I²R/C × dt = 1e8`, but the sequential `I*I*R` evaluates to zero. The same error arises when `heat/C` underflows before multiplication by a large `dt`. Code changes in `src/battery_thermal.py` and `matlab/battery_thermal_lumped.m` now recover the representable result using rescaled multiplication. Regression tests added in `tests/test_scientific_audit.py` and `matlab/tests/TestReferenceModels.m`, including an independently expected `1e-300` adiabatic increment. Native parity must be revalidated on the latest source SHA.
+
+**Earlier MATLAB and dependency verification:** GitHub Actions run 44945582567 passed 10 MATLAB tests (0 failed/incomplete), six thermal/four DC parity cases with zero absolute error and no analyzer findings; dependency artifact 14723890760 passed with `wcmatch 11.2` and no CVEs. These receipts apply to the preceding code commit, not the new TH-03 correction.
+
 All changes were applied to isolated GitHub branch `audit/scientific-verification-20261121` via draft PR #52 against unchanged main baseline `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. A proposed patch is not a validated fix until its final integration gate passes.
 
 | Finding | Root cause / before | Applied correction | Regression and verification | Compatibility |

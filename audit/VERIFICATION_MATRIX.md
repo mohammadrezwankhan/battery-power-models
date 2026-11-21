@@ -1,5 +1,15 @@
 # Requirement Verification Matrix
 
+## Addendum: late adversarial underflow and verified MATLAB execution
+
+| ID | Domain | Test/requirement | Evidence status | Evidence | Fix | Verification |
+|---|---|---|---|---|---|---|
+| TH09 | Thermal | Underflow in I²R when temperature rise remains finite | PARTIAL — newest commit CI pending | `tests/test_scientific_audit.py:test_intermediate_underflow_cannot_erase_finite_adiabatic_heating` and MATLAB `finiteAdiabaticHeatSurvivesIntermediateUnderflow` | rescale I√R and zero-conductance heat/time arithmetic | independent 1e8 and 1e-300 outputs |
+| PA05 | MATLAB | 10 executed original/new tests at 2c636e8 | PASS historical (not latest SHA) | run 44945582567 artifact 14724000147: 10 passed, 0 failed, 0 incomplete; no code analyzer issues; six thermal/four DC parity differences 0 | earlier test shape/ID corrections | MATLAB R2026a |
+| CI07 | Security | wcmatch11.2 scanner dependency fix | PASS at 2c636e8 | run 44945582567 dependency artifact 14723890760: `wcmatch 11.2`, no vulnerabilities, scanner summary passed | hash-locked version update | new SAST job still requires separate result |
+
+Older evidence labels below describe the original audit snapshot; the newer source revision must complete its own integration tests.
+
 **Baseline:** `ee64a256e10ce163e91b17a3bc8004a7fa4bc54d`. **Audit branch:** `audit/scientific-verification-20261121`. Status describes evidence at the stated snapshot, not a promise. An item marked PARTIAL requires the exact follow-up described here. Reference GitHub PR #52 and CI runs linked in `AUDIT_REPORT.md`.
 
 | ID | Domain | Test / requirement | Evidence status | Reproducible evidence | Fix | Independent verification |
