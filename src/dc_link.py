@@ -88,7 +88,9 @@ def minimum_capacitance_for_energy_pulse(
         try:
             result = math.exp(exponent)
         except OverflowError as error:
-            raise ValueError("capacitance is not representable as a finite nonzero float") from error
+            raise ValueError(
+                "capacitance is not representable as a finite nonzero float"
+            ) from error
     if not math.isfinite(result) or result == 0:
         raise ValueError("capacitance is not representable as a finite nonzero float")
     return result
