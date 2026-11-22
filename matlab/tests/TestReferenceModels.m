@@ -45,6 +45,10 @@ classdef TestReferenceModels < matlab.unittest.TestCase
                 trace = battery_thermal_lumped(row(1), row(4), params, row(6));
                 testCase.verifyEqual(trace(end), row(7), 'RelTol', 1e-14);
             end
+            params = struct('resistance_ohm', 0, 'thermal_capacitance_j_per_k', 1, ...
+                'cooling_conductance_w_per_k', tiny, 'ambient_c', -1e308);
+            trace = battery_thermal_lumped(0, 0.5, params, 0);
+            testCase.verifyEqual(trace(end), (-1e308 * tiny) * 0.5);
         end
 
         function adiabaticAndQuasiAdiabaticLimits(testCase)
