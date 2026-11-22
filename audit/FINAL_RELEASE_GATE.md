@@ -37,3 +37,7 @@ READY refers **only to reproducible educational reference software**: fixed resi
 ## Human/agent verification integrity
 
 The proof includes real GitHub runner Python, MATLAB R2026a and Chrome, independent algebra and a public browser smoke test. It does **not** include 10 independently instantiated Gemini/Antigravity agents or an actual parallel worktree swarm. A UI test is not a physical-world qualification.
+
+## Subsequent integration record
+
+PR #52 was squash-merged as verified commit [ed7bd708](https://github.com/mohammadrezwankhan/battery-power-models/commit/ed7bd70870cca53882c39765796b1223cfaf6c67). The historical two-parent merge instruction above predates the observed linear-history requirement. For subsequent changes use a repository-permitted merge method, guard the expected PR head, and verify the integration signature, source tree, checks and Pages deployment.
