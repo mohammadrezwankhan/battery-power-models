@@ -82,8 +82,13 @@ def analytical_step(
         heat_gain = _scaled_product((*power_factors, dt_s, ratio), capacitance)
     else:
         heat_gain = _scaled_product((*power_factors, fade), conductance)
-    if temp_c == params.ambient_c or x == 0:
+    if temp_c == params.ambient_c or conductance == 0:
         base = temp_c
+    elif x < sys.float_info.min:
+        # x may round to zero while either temperature times x is representable.
+        cooling = _scaled_product((params.ambient_c, conductance, dt_s), capacitance)
+        cooling -= _scaled_product((temp_c, conductance, dt_s), capacitance)
+        base = temp_c + cooling
     else:
         base = temp_c * math.exp(-x) + params.ambient_c * fade
     result = base + heat_gain

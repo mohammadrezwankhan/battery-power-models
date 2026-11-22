@@ -52,7 +52,11 @@ for index = 1:numel(currents_a)
         heat_gain = scaled_product([power_factors, fade], conductance);
     end
     base = temperature_c(index);
-    if base ~= params.ambient_c && x > 0
+    if base ~= params.ambient_c && conductance > 0 && x < realmin
+        ambient_term = scaled_product([params.ambient_c, conductance, dt_s], capacitance);
+        initial_term = scaled_product([base, conductance, dt_s], capacitance);
+        base = base + (ambient_term - initial_term);
+    elseif base ~= params.ambient_c && x > 0
         base = base * decay + params.ambient_c * fade;
     end
     temperature_c(index + 1) = base + heat_gain;
@@ -80,5 +84,5 @@ end
 [fractions, shifts] = log2(abs(factors));
 [denominator, shift] = log2(divisor);
 [mantissa, normalized_shift] = log2(prod(fractions) / denominator);
-result = pow2(mantissa, sum(shifts) - shift + normalized_shift);
+result = prod(sign(factors)) * pow2(mantissa, sum(shifts) - shift + normalized_shift);
 end
