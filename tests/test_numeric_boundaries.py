@@ -51,6 +51,12 @@ class NumericBoundaryTests(unittest.TestCase):
     def test_positive_subnormal_duration_still_has_an_interval(self) -> None:
         self.assertEqual(constant_profile(2.0, math.ulp(0.0), 2.0), [2.0])
 
+    def test_cooling_survives_unrepresentable_exponent(self) -> None:
+        tiny = math.ulp(0.0)
+        params = ThermalParameters(0.0, 1.0, tiny, -1e308)
+        actual = analytical_step(0.0, 0.0, 0.5, params)
+        self.assertEqual(actual, (-1e308 * tiny) * 0.5)
+
     def test_unrepresentable_profile_count_has_a_validation_error(self) -> None:
         for duration, dt in ((1e308, 1e-308), (1e20, 1.0)):
             with (
