@@ -45,6 +45,21 @@ class ThermalParameters:
             raise ValueError("cooling_conductance_w_per_k must be non-negative")
 
 
+def _scaled_product(factors: tuple[float, ...], divisor: float) -> float:
+    """Apply binary exponents after multiplying the bounded significands."""
+    denominator, denominator_exp = math.frexp(divisor)
+    mantissa = 1.0
+    exponent = -denominator_exp
+    for factor in factors:
+        fraction, shift = math.frexp(factor)
+        mantissa *= fraction
+        exponent += shift
+    try:
+        return math.ldexp(mantissa / denominator, exponent)
+    except OverflowError:
+        return math.inf
+
+
 def analytical_step(
     temp_c: float, current_a: float, dt_s: float, params: ThermalParameters
 ) -> float:
@@ -58,67 +73,30 @@ def analytical_step(
     resistance = params.resistance_ohm
     capacitance = params.thermal_capacitance_j_per_k
     conductance = params.cooling_conductance_w_per_k
-    # Avoid the undefined IEEE-754 form infinity * zero when R is exactly zero.
-    heat_w = 0.0 if current_a == 0 or resistance == 0 else current_a * current_a * resistance
-    if not math.isfinite(heat_w) or (
-        heat_w == 0 and current_a != 0 and resistance != 0
-    ):
-        try:
-            heat_w = (current_a * math.sqrt(resistance)) ** 2
-        except OverflowError as error:
-            raise ValueError(
-                "thermal heat generation is not representable as a finite float"
-            ) from error
-    if not math.isfinite(heat_w):
-        raise ValueError("thermal heat generation is not representable as a finite float")
-
-    if conductance == 0:
-        # Exact adiabatic limit: C_th * dT/dt = I²R.
-        heat_delta = (heat_w / capacitance) * dt_s
-        if heat_delta == 0 and heat_w > 0:
-            heat_delta = (heat_w * dt_s) / capacitance
-        result = temp_c + heat_delta
+    power_factors = (current_a, current_a, resistance)
+    x = _scaled_product((conductance, dt_s), capacitance)
+    fade = -math.expm1(-x)
+    if x < 1e-6:
+        # fade/x tends to one in the adiabatic limit.
+        ratio = fade / x if x else 1.0
+        heat_gain = _scaled_product((*power_factors, dt_s, ratio), capacitance)
     else:
-        x = (conductance * dt_s) / capacitance
-        if not math.isfinite(x):
-            x = (conductance / capacitance) * dt_s
-        if x < 1e-6:
-            # The steady-state expression loses significant digits as hA -> 0.
-            fade = -math.expm1(-x)
-            ratio = 1.0 if x == 0 else fade / x
-            heat_delta = (heat_w / capacitance) * dt_s
-            if heat_delta == 0 and heat_w > 0:
-                heat_delta = (heat_w * dt_s) / capacitance
-            cooling_delta = (params.ambient_c - temp_c) * fade
-            base = (
-                temp_c + cooling_delta
-                if math.isfinite(cooling_delta)
-                else temp_c * math.exp(-x) + params.ambient_c * fade
-            )
-            result = base + heat_delta * ratio
-        else:
-            # Preserve the old expression for ordinary well-scaled cases.
-            steady_c = params.ambient_c + heat_w / conductance
-            difference = temp_c - steady_c
-            decay = math.exp(-x)
-            if math.isfinite(steady_c) and math.isfinite(difference):
-                result = steady_c + difference * decay
-            else:
-                # The formal steady state or temperature difference may
-                # overflow even while the exact transient remains finite.
-                fade = -math.expm1(-x)
-                heat_gain = heat_w / conductance
-                if math.isfinite(heat_gain):
-                    heat_gain *= fade
-                else:
-                    heat_delta = (heat_w / capacitance) * dt_s
-                    if heat_delta == 0 and heat_w > 0:
-                        heat_delta = (heat_w * dt_s) / capacitance
-                    heat_gain = heat_delta * (fade / x)
-                result = (
-                    temp_c * decay + params.ambient_c * fade + heat_gain
-                )
+        heat_gain = _scaled_product((*power_factors, fade), conductance)
+    if temp_c == params.ambient_c or x == 0:
+        base = temp_c
+    else:
+        base = temp_c * math.exp(-x) + params.ambient_c * fade
+    result = base + heat_gain
+    if x >= 1e-6:
+        # Preserve the reference rounding where the steady-state form is well conditioned.
+        steady = params.ambient_c + _scaled_product(power_factors, conductance)
+        transient = (temp_c - steady) * math.exp(-x)
+        reference = steady + transient
+        if math.isfinite(reference) and abs(reference) >= 0.125 * max(abs(steady), abs(transient)):
+            result = reference
     if not math.isfinite(result):
+        if not math.isfinite(_scaled_product(power_factors, 1.0)):
+            raise ValueError("thermal heat generation is not representable as a finite float")
         raise ValueError("thermal update is not representable as a finite float")
     return result
 

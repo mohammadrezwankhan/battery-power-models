@@ -28,6 +28,19 @@ class NumericBoundaryTests(unittest.TestCase):
             ):
                 analytical_step(temp, current, 1.0, params)
 
+    def test_thermal_step_scales_factors_before_rounding(self) -> None:
+        tiny = math.ulp(0.0)
+        cases = (
+            (1e154, 1.0, 1e-308, 1e-308, 0.0, 0.0, 1e308),
+            (1e-200, 1e-200, 1e-308, 1e308, 0.0, 0.0, 1e16),
+            (0.0, 0.0, tiny, 0.5, tiny, 100.0, 100.0 * math.exp(-0.5)),
+        )
+        for current, resistance, capacity, dt, cooling, initial, expected in cases:
+            params = ThermalParameters(resistance, capacity, cooling, 0.0)
+            with self.subTest(params=params):
+                actual = analytical_step(initial, current, dt, params)
+                self.assertTrue(math.isclose(actual, expected, rel_tol=1e-14))
+
     def test_quasi_adiabatic_high_power_is_finite_when_physics_is_finite(self) -> None:
         params = ThermalParameters(cooling_conductance_w_per_k=1e-300)
         actual = analytical_step(25.0, 1e150, 1.0, params)

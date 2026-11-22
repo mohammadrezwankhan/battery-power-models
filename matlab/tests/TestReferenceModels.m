@@ -33,6 +33,20 @@ classdef TestReferenceModels < matlab.unittest.TestCase
             testCase.verifyEqual(trace(end), 1e-300, 'RelTol', 1e-12);
         end
 
+        function scaledThermalProductsRetainFiniteTransients(testCase)
+            tiny = eps(0);
+            cases = [1e154, 1, 1e-308, 1e-308, 0, 0, 1e308;
+                1e-200, 1e-200, 1e-308, 1e308, 0, 0, 1e16;
+                0, 0, tiny, 0.5, tiny, 100, 100*exp(-0.5)];
+            for row = cases.'
+                params = struct('resistance_ohm', row(2), ...
+                    'thermal_capacitance_j_per_k', row(3), ...
+                    'cooling_conductance_w_per_k', row(5), 'ambient_c', 0);
+                trace = battery_thermal_lumped(row(1), row(4), params, row(6));
+                testCase.verifyEqual(trace(end), row(7), 'RelTol', 1e-14);
+            end
+        end
+
         function adiabaticAndQuasiAdiabaticLimits(testCase)
             params = struct('cooling_conductance_w_per_k', 0);
             actual = battery_thermal_lumped([80 80], 5, params, 25);
