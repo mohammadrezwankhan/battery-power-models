@@ -64,6 +64,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -84,7 +85,30 @@ jobs:
       - name: Upload static docs
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: docs
+      - name: Wait for uniquely indexed Pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_ARTIFACT_NAME: github-pages-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" --jq ".artifacts | map(select(.name == \"$PAGES_ARTIFACT_NAME\" and .expired == false)) | length")
+            if [[ "$count" == "1" ]]; then
+              echo "Exactly one Pages artifact is indexed for this attempt."
+              exit 0
+            fi
+            if [[ "$count" != "0" ]]; then
+              echo "Expected exactly one Pages artifact; found $count." >&2
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "Pages artifact not indexed within the bounded 60-second check." >&2
+          exit 1
       - name: Publish GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
