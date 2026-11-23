@@ -94,6 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 20); do
+            echo "Pages artifact lookup $attempt of 20."
             count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" --jq ".artifacts | map(select(.name == \"$PAGES_ARTIFACT_NAME\" and .expired == false)) | length")
             if [[ "$count" == "1" ]]; then
               echo "Exactly one Pages artifact is indexed for this attempt."
