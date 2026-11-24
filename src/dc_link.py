@@ -17,6 +17,20 @@ def _require_finite_real(name: str, value: object) -> None:
     if not finite:
         raise ValueError(f"{name} must be finite")
 
+
+def _scaled_positive_ratio(numerator: tuple[float, ...], denominator: tuple[float, ...]) -> float:
+    """Combine bounded significands before applying the net binary exponent."""
+    factors = (*numerator, *denominator)
+    fractions, exponents = zip(*(math.frexp(factor) for factor in factors), strict=True)
+    split = len(numerator)
+    ratio = math.prod(fractions[:split]) / math.prod(fractions[split:])
+    exponent = sum(exponents[:split]) - sum(exponents[split:])
+    try:
+        return math.ldexp(ratio, exponent)
+    except OverflowError:
+        return math.inf
+
+
 def triangular_current_ripple_vpp(
     current_pp_a: float, switching_hz: float, capacitance_f: float
 ) -> float:
@@ -32,19 +46,13 @@ def triangular_current_ripple_vpp(
     if current_pp_a == 0:
         return 0.0
     denominator = 8.0 * switching_hz * capacitance_f
-    result = current_pp_a / denominator if math.isfinite(denominator) and denominator > 0 else 0.0
+    result = (
+        current_pp_a / denominator
+        if math.isfinite(denominator) and denominator >= sys.float_info.min
+        else 0.0
+    )
     if not math.isfinite(result) or result == 0:
-        # Factorized calculation avoids intermediate overflow and underflow.
-        exponent = (
-            math.log(current_pp_a)
-            - math.log(8.0)
-            - math.log(switching_hz)
-            - math.log(capacitance_f)
-        )
-        try:
-            result = math.exp(exponent)
-        except OverflowError as error:
-            raise ValueError("ripple is not representable as a finite nonzero float") from error
+        result = _scaled_positive_ratio((current_pp_a,), (8.0, switching_hz, capacitance_f))
     if not math.isfinite(result) or result == 0:
         raise ValueError("ripple is not representable as a finite nonzero float")
     return result
@@ -72,25 +80,17 @@ def minimum_capacitance_for_energy_pulse(
     denominator = allowed_drop_v * (2.0 * bus_v - allowed_drop_v)
     result = (
         numerator / denominator
-        if math.isfinite(numerator) and math.isfinite(denominator) and denominator > 0
+        if math.isfinite(numerator)
+        and math.isfinite(denominator)
+        and min(energy_j, denominator) >= sys.float_info.min
         else 0.0
     )
     if not math.isfinite(result) or result == 0:
         # Rewrite 2 V - drop as V * (2 - drop / V) to preserve scaling.
-        exponent = (
-            math.log(2.0)
-            + math.log(power_w)
-            + math.log(pulse_s)
-            - math.log(allowed_drop_v)
-            - math.log(bus_v)
-            - math.log(2.0 - allowed_drop_v / bus_v)
+        result = _scaled_positive_ratio(
+            (2.0, power_w, pulse_s),
+            (allowed_drop_v, bus_v, 2.0 - allowed_drop_v / bus_v),
         )
-        try:
-            result = math.exp(exponent)
-        except OverflowError as error:
-            raise ValueError(
-                "capacitance is not representable as a finite nonzero float"
-            ) from error
     if not math.isfinite(result) or result == 0:
         raise ValueError("capacitance is not representable as a finite nonzero float")
     return result

@@ -166,6 +166,29 @@ class ThermalAuditTests(unittest.TestCase):
 
 
 class DcLinkAuditTests(unittest.TestCase):
+    def test_dc_link_preserves_finite_results_with_subnormal_products(self) -> None:
+        smallest = math.ulp(0.0)
+        cases = (
+            (
+                "ripple denominator",
+                triangular_current_ripple_vpp(smallest, 0.1875, smallest),
+                2 / 3,
+            ),
+            (
+                "pulse denominator",
+                minimum_capacitance_for_energy_pulse(smallest, 1.0, 0.75, smallest),
+                4 / 3,
+            ),
+            (
+                "pulse numerator",
+                minimum_capacitance_for_energy_pulse(smallest, 0.875, 1.0, smallest),
+                0.875,
+            ),
+        )
+        for name, actual, expected in cases:
+            with self.subTest(name=name):
+                self.assertAlmostEqual(actual, expected, places=15)
+
     def test_scaling_and_valid_zero_ripple(self) -> None:
         baseline = triangular_current_ripple_vpp(20.0, 10000.0, 0.0022)
         self.assertAlmostEqual(triangular_current_ripple_vpp(20.0, 20000.0, 0.0022), baseline / 2)
