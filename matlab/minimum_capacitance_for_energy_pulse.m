@@ -19,15 +19,14 @@ end
 
 numerator = 2 * power_w * pulse_s;
 denominator = allowed_drop_v * (2 * bus_v - allowed_drop_v);
-if isfinite(numerator) && isfinite(denominator) && denominator > 0
+if isfinite(numerator) && isfinite(denominator) && min(numerator, denominator) >= realmin
     capacitance_f = numerator / denominator;
 else
     capacitance_f = 0;
 end
 if ~isfinite(capacitance_f) || capacitance_f == 0
-    exponent = log(2) + log(power_w) + log(pulse_s) - log(allowed_drop_v) - ...
-        log(bus_v) - log(2 - allowed_drop_v / bus_v);
-    capacitance_f = exp(exponent);
+    capacitance_f = scaledPositiveRatio([2 power_w pulse_s], ...
+        [allowed_drop_v bus_v 2 - allowed_drop_v / bus_v]);
 end
 if ~isfinite(capacitance_f) || capacitance_f == 0
     error('BatteryPower:Range', ...

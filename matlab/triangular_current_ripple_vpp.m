@@ -15,16 +15,13 @@ if current_pp_a == 0
 end
 
 denominator = 8 * switching_hz * capacitance_f;
-if isfinite(denominator) && denominator > 0
+if isfinite(denominator) && denominator >= realmin
     ripple_vpp = current_pp_a / denominator;
 else
     ripple_vpp = 0;
 end
 if ~isfinite(ripple_vpp) || ripple_vpp == 0
-    % The final result can be representable even when the denominator
-    % overflows or underflows; factorize without relaxing finite-value checks.
-    exponent = log(current_pp_a) - log(8) - log(switching_hz) - log(capacitance_f);
-    ripple_vpp = exp(exponent);
+    ripple_vpp = scaledPositiveRatio(current_pp_a, [8 switching_hz capacitance_f]);
 end
 if ~isfinite(ripple_vpp) || ripple_vpp == 0
     error('BatteryPower:Range', ...

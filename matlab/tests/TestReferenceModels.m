@@ -118,6 +118,16 @@ classdef TestReferenceModels < matlab.unittest.TestCase
                 'BatteryPower:Range');
         end
 
+        function dcLinkPreservesFiniteResultsWithSubnormalProducts(testCase)
+            smallest = eps(0);
+            testCase.verifyEqual(triangular_current_ripple_vpp(smallest, 0.1875, smallest), ...
+                2 / 3, 'RelTol', 1e-14);
+            testCase.verifyEqual(minimum_capacitance_for_energy_pulse(smallest, 1, 0.75, smallest), ...
+                4 / 3, 'RelTol', 1e-14);
+            testCase.verifyEqual(minimum_capacitance_for_energy_pulse(smallest, 0.875, 1, smallest), ...
+                0.875, 'RelTol', 1e-14);
+        end
+
         function nonfiniteThermalValuesAreRejected(testCase)
             testCase.verifyError(@() battery_thermal_lumped(NaN, 1), ...
                 'MATLAB:expectedFinite');
