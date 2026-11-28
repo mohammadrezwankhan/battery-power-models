@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Any
 import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "capture_python_parity.py"
+DC_LINK_HELPER = "matlab/private/scaledPositiveRatio.m"
 SPEC = importlib.util.spec_from_file_location("capture_python_parity", SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError("Cannot load the parity capture helper")
@@ -22,7 +24,10 @@ def test_current_python_matches_all_frozen_cases() -> None:
     assert report["passed"] is True  # noqa: S101 -- regression contract
     assert len(report["thermal"]) == 6  # noqa: S101
     assert len(report["dc_link"]) == 4  # noqa: S101
-    assert len(report["source_sha256"]) == 9  # noqa: S101
+    assert len(report["source_sha256"]) == 10  # noqa: S101
+    helper = SCRIPT.parents[1] / DC_LINK_HELPER
+    expected = hashlib.sha256(helper.read_bytes()).hexdigest()
+    assert report["source_sha256"][DC_LINK_HELPER] == expected  # noqa: S101
     for case in [*report["thermal"], *report["dc_link"]]:
         assert case["max_absolute_error"] == 0.0  # noqa: S101 -- exact current fixture replay
     CAPTURE.verify_capture(report, CAPTURE.capture())
@@ -36,11 +41,12 @@ def test_invalid_numeric_evidence_is_rejected(invalid: list[object]) -> None:
 
 def test_changed_source_missing_case_and_changed_value_cannot_verify() -> None:
     original: dict[str, Any] = CAPTURE.capture()
-    mutations = [copy.deepcopy(original) for _ in range(4)]
+    mutations = [copy.deepcopy(original) for _ in range(5)]
     mutations[0]["source_sha256"]["src/dc_link.py"] = "0" * 64
     mutations[1]["thermal"].pop()
     mutations[2]["dc_link"][0]["values"][0] += 1.0
     mutations[3]["passed"] = 1
+    mutations[4]["source_sha256"][DC_LINK_HELPER] = "0" * 64
     for changed in mutations:
         with pytest.raises(ValueError, match="fresh execution"):
             CAPTURE.verify_capture(changed, original)
